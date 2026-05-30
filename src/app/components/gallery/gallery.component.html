@@ -1,0 +1,26 @@
+<section class="gal" id="gallery">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div class="eyebrow"><span class="dot"></span><span class="num">05</span> Производство в кадре</div>
+      <h2 class="section-title">Трубы · фитинги<br />цех</h2>
+    </div>
+  </div>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track marquee__track--a">
+      <figure class="shot" *ngFor="let s of rowA.concat(rowA)">
+        <img [src]="s.src" [alt]="s.cap" loading="lazy" />
+        <figcaption class="mono-num">{{ s.cap }}</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track marquee__track--b">
+      <figure class="shot" *ngFor="let s of rowB.concat(rowB)">
+        <img [src]="s.src" [alt]="s.cap" loading="lazy" />
+        <figcaption class="mono-num">{{ s.cap }}</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,89 @@
+<section class="section quote" id="quote">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">03</span> Вместо корзины</div>
+        <h2 class="section-title">Собрать<br />заявку</h2>
+      </div>
+      <p class="head__note">
+        Без оформления заказа и оплаты онлайн. Добавьте позиции, укажите количество и контакты —
+        менеджер свяжется, подтвердит наличие и цены.
+      </p>
+    </div>
+
+    <div class="done" *ngIf="submitted(); else builder" appReveal>
+      <div class="done__mark">✓</div>
+      <h3 class="done__title">Заявка сформирована</h3>
+      <p class="done__text">
+        В реальном проекте она будет отправлена в Telegram-группу и продублирована на email.
+      </p>
+      <button class="btn btn--accent" (click)="reset()">Создать новую заявку</button>
+    </div>
+
+    <ng-template #builder>
+      <div class="grid">
+        <div class="lines" appReveal>
+          <div class="lines__bar">
+            <span>Выбранные товары</span>
+            <span class="mono-num">{{ quote.count() }} поз. · {{ quote.totalQty() }} шт.</span>
+          </div>
+
+          <div class="empty" *ngIf="quote.count() === 0">
+            <p>Список пуст. Добавьте позиции из каталога кнопкой «Добавить в заявку».</p>
+          </div>
+
+          <div class="line" *ngFor="let l of quote.lines()">
+            <div class="line__info">
+              <span class="line__sku mono-num">{{ l.product.sku }}</span>
+              <span class="line__title">{{ l.product.title }}</span>
+              <span class="line__spec">{{ l.product.spec }}</span>
+            </div>
+            <div class="line__qty">
+              <button (click)="dec(l.product.sku, l.qty)">−</button>
+              <input type="number" min="1" [ngModel]="l.qty"
+                     (ngModelChange)="quote.setQty(l.product.sku, +$event)" class="mono-num" />
+              <button (click)="inc(l.product.sku, l.qty)">+</button>
+            </div>
+            <button class="line__del" (click)="remove(l.product.sku)" title="Убрать">✕</button>
+          </div>
+        </div>
+
+        <form class="form" appReveal [revealDelay]="100" (ngSubmit)="send()">
+          <div class="field">
+            <label>Имя <i>*</i></label>
+            <input name="name" [(ngModel)]="name" placeholder="Как к вам обращаться" required />
+          </div>
+          <div class="field">
+            <label>Телефон <i>*</i></label>
+            <input name="phone" [(ngModel)]="phone" placeholder="+380 ..." required />
+          </div>
+          <div class="field">
+            <label>Город / район</label>
+            <input name="city" [(ngModel)]="city" placeholder="Донецк, Киевский р-н" />
+          </div>
+
+          <div class="field">
+            <label>Тип клиента</label>
+            <div class="types">
+              <button type="button" class="type" *ngFor="let t of clientTypes"
+                      [class.type--on]="clientType === t.id" (click)="clientType = t.id">
+                {{ t.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Комментарий</label>
+            <textarea name="comment" [(ngModel)]="comment" rows="3"
+                      placeholder="Объём, сроки, самовывоз / доставка"></textarea>
+          </div>
+
+          <button class="submit" type="submit" [disabled]="!canSubmit || sending()">
+            {{ sending() ? 'Формируем…' : 'Отправить заявку' }} <span class="arrow">↗</span>
+          </button>
+          <p class="form__hint">Нажимая, вы соглашаетесь на обработку заявки менеджером. Оплата не требуется.</p>
+        </form>
+      </div>
+    </ng-template>
+  </div>
+</section>

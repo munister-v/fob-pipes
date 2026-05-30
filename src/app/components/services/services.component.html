@@ -1,0 +1,28 @@
+<section class="section services" id="services">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">06</span> Услуги</div>
+        <h2 class="section-title">Что мы<br />делаем</h2>
+      </div>
+      <p class="head__note">
+        Полный цикл — от выпуска изделия до отгрузки на объект.
+        Пять направлений работы для B2B-клиентов.
+      </p>
+    </div>
+
+    <ul class="list">
+      <li class="srv" *ngFor="let s of services; let i = index" appReveal [revealDelay]="i * 70"
+          (click)="go(s.target)">
+        <span class="srv__no mono-num">{{ s.no }}.</span>
+        <span class="srv__title">{{ s.title }}</span>
+        <span class="srv__text">{{ s.text }}</span>
+        <span class="srv__arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 17 L17 7 M9 7 H17 V15" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </span>
+      </li>
+    </ul>
+  </div>
+</section>

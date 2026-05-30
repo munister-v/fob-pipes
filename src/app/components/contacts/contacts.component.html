@@ -1,0 +1,56 @@
+<section class="section contacts" id="contacts">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div class="eyebrow"><span class="dot"></span><span class="num">09</span> Контакты</div>
+      <h2 class="section-title">Связаться<br />с производством</h2>
+    </div>
+
+    <div class="grid">
+      <div class="details" appReveal>
+        <a class="row" href="tel:+380620000000">
+          <span class="row__k">Телефон</span>
+          <span class="row__v">+380 (62) 000-00-00</span>
+        </a>
+        <a class="row" href="mailto:zakaz@fob-truby.example">
+          <span class="row__k">E-mail</span>
+          <span class="row__v">zakaz&#64;fob-truby.example</span>
+        </a>
+        <div class="row">
+          <span class="row__k">Telegram</span>
+          <span class="row__v">&#64;fob_zakaz</span>
+        </div>
+        <div class="row">
+          <span class="row__k">Адрес</span>
+          <span class="row__v">г. Донецк, промышленная зона</span>
+        </div>
+        <div class="row">
+          <span class="row__k">График</span>
+          <span class="row__v">Пн–Пт · 08:00–17:00</span>
+        </div>
+
+        <div class="how">
+          <p>
+            Заявки обрабатываются вручную: после отправки менеджер связывается,
+            подтверждает наличие и цены, согласует отгрузку. Онлайн-оплаты нет.
+          </p>
+        </div>
+      </div>
+
+      <div class="cta" appReveal [revealDelay]="120">
+        <div class="map" aria-hidden="true">
+          <span class="map__grid"></span>
+          <span class="map__pin"></span>
+          <span class="map__label mono-num">48.00°N · 37.80°E</span>
+        </div>
+        <div class="cta__panel">
+          <h3>Готовы собрать заявку?</h3>
+          <p>Добавьте позиции из каталога и отправьте список — это ни к чему не обязывает.</p>
+          <div class="cta__btns">
+            <button class="btn btn--accent" (click)="go('quote')"><span>Собрать заявку</span> <span class="arrow">↗</span></button>
+            <button class="btn" (click)="go('catalog')">В каталог</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

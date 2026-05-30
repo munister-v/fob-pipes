@@ -1,0 +1,56 @@
+<section class="section prod" id="production">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">04</span> Производство и история</div>
+        <h2 class="section-title">Завод<br />в Донецке</h2>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="lead" appReveal>
+        <p>
+          Компания основана в <b>1998 году</b> под маркой «ЮНИПЛАСТ». Сегодня мы
+          выпускаем продукцию под торговыми марками <b>«Юнипласт»</b> и <b>«Ф.О.Б»</b> —
+          одно из первых и крупнейших производств пластиковой канализации.
+        </p>
+        <p>
+          На заводе установлено современное европейское оборудование: работают
+          <b>5 экструзионных линий</b> и <b>9 термопластавтоматов</b>. Технические
+          специалисты прошли обучение на заводах-поставщиках оборудования. Используем
+          только высококачественное сырьё и соблюдаем стандарты контроля качества.
+        </p>
+        <div class="lead__tags">
+          <span>ПВХ</span><span>Полипропилен</span><span>ПНД</span>
+          <span>Экструзия</span><span>Литьё под давлением</span><span>Aqua-Therm</span>
+        </div>
+      </div>
+
+      <div class="visual" appReveal [revealDelay]="120">
+        <figure class="photo ticks">
+          <img src="assets/img/factory.jpg" alt="Производственный цех Ф.О.Б, термопластавтоматы" />
+          <figcaption class="mono-num">ЦЕХ · ТЕРМОПЛАСТАВТОМАТЫ</figcaption>
+        </figure>
+
+        <div class="facts">
+          <div class="fact">
+            <span class="fact__num mono-num"><span [countUp]="1998" [duration]="1800"></span></span>
+            <span class="fact__label">год основания</span>
+          </div>
+          <div class="fact">
+            <span class="fact__num mono-num"><span [countUp]="200" suffix="+"></span></span>
+            <span class="fact__label">видов продукции</span>
+          </div>
+          <div class="fact">
+            <span class="fact__num mono-num"><span [countUp]="5"></span></span>
+            <span class="fact__label">экструзионных линий</span>
+          </div>
+          <div class="fact">
+            <span class="fact__num mono-num"><span [countUp]="9"></span></span>
+            <span class="fact__label">термопластавтоматов</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

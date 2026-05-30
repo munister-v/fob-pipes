@@ -1,0 +1,20 @@
+<section class="section tl" id="timeline">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div class="eyebrow"><span class="dot"></span><span class="num">07</span> Хронология</div>
+      <h2 class="section-title">30 лет<br />на трассе</h2>
+    </div>
+
+    <div class="track">
+      <div class="track__line"></div>
+      <div class="ms" *ngFor="let m of milestones; let i = index" appReveal [revealDelay]="i * 90">
+        <span class="ms__year mono-num">{{ m.year }}</span>
+        <span class="ms__node"></span>
+        <div class="ms__card">
+          <h3 class="ms__title">{{ m.title }}</h3>
+          <p class="ms__text">{{ m.text }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

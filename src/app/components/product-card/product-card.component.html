@@ -1,0 +1,58 @@
+<article class="card" [class.card--in]="quote.has(product.sku)">
+  <div class="card__art">
+    <span class="card__sku mono-num">{{ product.sku }}</span>
+    <svg class="schema" viewBox="0 0 200 120" fill="none" aria-hidden="true">
+      <line x1="10" y1="100" x2="190" y2="100" stroke="currentColor" stroke-dasharray="3 4" opacity="0.4" />
+      <ng-container [ngSwitch]="product.category">
+        <g *ngSwitchCase="'pipe'">
+          <rect x="20" y="48" width="160" height="32" stroke="currentColor" />
+          <line x1="34" y1="48" x2="34" y2="80" stroke="currentColor" opacity="0.5" />
+          <ellipse cx="180" cy="64" rx="6" ry="16" stroke="currentColor" />
+        </g>
+        <path *ngSwitchCase="'bend'" d="M30 80 L30 60 Q30 40 50 40 L120 40" stroke="currentColor" stroke-width="1.5" />
+        <g *ngSwitchCase="'coupling'">
+          <rect x="30" y="46" width="50" height="36" stroke="currentColor" />
+          <rect x="80" y="42" width="40" height="44" stroke="currentColor" />
+          <rect x="120" y="46" width="50" height="36" stroke="currentColor" />
+        </g>
+        <g *ngSwitchCase="'tee'">
+          <rect x="20" y="50" width="160" height="28" stroke="currentColor" />
+          <rect x="86" y="78" width="28" height="34" stroke="currentColor" />
+        </g>
+        <g *ngSwitchCase="'revision'">
+          <rect x="40" y="46" width="120" height="36" stroke="currentColor" />
+          <rect x="86" y="30" width="28" height="20" stroke="currentColor" />
+          <circle cx="100" cy="40" r="4" stroke="currentColor" />
+        </g>
+        <path *ngSwitchCase="'reducer'" d="M30 42 L110 52 L110 76 L30 86 Z M110 52 L170 56 L170 72 L110 76" stroke="currentColor" stroke-width="1.5" />
+      </ng-container>
+      <text x="100" y="116" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.6" letter-spacing="1">Ø{{ product.diameter }} мм</text>
+    </svg>
+
+    <span class="card__usage" [class.card__usage--ext]="product.usage === 'external'">
+      {{ product.usage === 'external' ? 'Наружная' : 'Внутренняя' }}
+    </span>
+  </div>
+
+  <div class="card__body">
+    <h3 class="card__title">{{ product.title }}</h3>
+    <p class="card__spec">{{ product.spec }}</p>
+
+    <div class="card__meta">
+      <span class="chip mono-num">Ø {{ product.diameter }}</span>
+      <span class="chip">{{ product.material }}</span>
+    </div>
+
+    <div class="card__foot">
+      <span class="status" [class.status--order]="product.availability === 'order'">
+        <span class="status__dot"></span>
+        {{ product.availability === 'order' ? 'Под заказ' : 'Уточнить наличие' }}
+      </span>
+
+      <button class="add" (click)="add()" [disabled]="quote.has(product.sku)">
+        <span *ngIf="!quote.has(product.sku)">Добавить в заявку <i>+</i></span>
+        <span *ngIf="quote.has(product.sku)">В заявке <i>✓</i></span>
+      </button>
+    </div>
+  </div>
+</article>
