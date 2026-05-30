@@ -1,6 +1,7 @@
-import { Injectable, effect, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { CATEGORIES, PRODUCTS } from '../data/catalog.data';
 import { CategoryDef, Product, QuoteRequest } from '../models/product.model';
+import { FirebaseService } from './firebase.service';
 
 export type QuoteStatus = 'new' | 'in_progress' | 'done';
 
@@ -41,12 +42,19 @@ interface Persisted {
 
 /**
  * Single reactive source of truth for catalog, quotes and editable content.
- * Backed by localStorage today; the same signal API can be fed by Firebase
- * later without touching consumers — just swap load()/persist() internals.
+ *
+ * Two interchangeable backends, chosen automatically:
+ *  • Firebase Firestore — when firebase.config.ts is filled in. Catalog/content
+ *    edits and incoming quotes are GLOBAL and realtime across all devices.
+ *  • localStorage — otherwise. Per-browser, zero setup (default today).
+ *
+ * Consumers only touch the signals + mutator methods; the backend is invisible.
  */
 @Injectable({ providedIn: 'root' })
 export class DataStore {
+  private readonly firebase = inject(FirebaseService);
   private readonly KEY = 'fob-store-v1';
+  private readonly fb = this.firebase.enabled();
 
   readonly products = signal<Product[]>(structuredClone(PRODUCTS));
   readonly categories = signal<CategoryDef[]>(structuredClone(CATEGORIES));
@@ -56,21 +64,24 @@ export class DataStore {
   private ready = false;
 
   constructor() {
-    this.load();
-    this.ready = true;
-    effect(() => {
-      // touch every slice so persistence runs on any mutation
-      const snap: Persisted = {
-        products: this.products(),
-        categories: this.categories(),
-        quotes: this.quotes(),
-        content: this.content(),
-      };
-      if (this.ready) this.persist(snap);
-    });
+    if (this.fb) {
+      void this.initFirebase();
+    } else {
+      this.load();
+      this.ready = true;
+      effect(() => {
+        const snap: Persisted = {
+          products: this.products(),
+          categories: this.categories(),
+          quotes: this.quotes(),
+          content: this.content(),
+        };
+        if (this.ready) this.persist(snap);
+      });
+    }
   }
 
-  // ── persistence ──────────────────────────────────────────────
+  // ═══════════════ localStorage backend ═══════════════
   private load(): void {
     try {
       const raw = localStorage.getItem(this.KEY);
@@ -93,7 +104,59 @@ export class DataStore {
     }
   }
 
-  // ── products ─────────────────────────────────────────────────
+  // ═══════════════ Firestore backend ═══════════════
+  private async initFirebase(): Promise<void> {
+    try {
+      const { db, fs } = await this.firebase.handle();
+
+      // Seed the catalog/categories/content docs on first ever run.
+      const catRef = fs.doc(db, 'site', 'catalog');
+      const existing = await fs.getDoc(catRef);
+      if (!existing.exists()) {
+        await fs.setDoc(catRef, { products: this.products() });
+        await fs.setDoc(fs.doc(db, 'site', 'categories'), { items: this.categories() });
+        await fs.setDoc(fs.doc(db, 'site', 'content'), this.content());
+      }
+
+      // Realtime mirrors → signals.
+      fs.onSnapshot(fs.doc(db, 'site', 'catalog'), (d: { data: () => { products?: Product[] } }) => {
+        const x = d.data();
+        if (x?.products) this.products.set(x.products);
+      });
+      fs.onSnapshot(
+        fs.doc(db, 'site', 'categories'),
+        (d: { data: () => { items?: CategoryDef[] } }) => {
+          const x = d.data();
+          if (x?.items) this.categories.set(x.items);
+        }
+      );
+      fs.onSnapshot(fs.doc(db, 'site', 'content'), (d: { data: () => Partial<SiteContent> }) => {
+        const x = d.data();
+        if (x) this.content.set({ ...DEFAULT_CONTENT, ...x });
+      });
+      fs.onSnapshot(
+        fs.query(fs.collection(db, 'quotes'), fs.orderBy('createdAt', 'desc')),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (qs: { docs: any[] }) => {
+          this.quotes.set(qs.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as StoredQuote));
+        }
+      );
+    } catch (e) {
+      console.error('[firebase] init failed, falling back to local snapshot', e);
+    }
+  }
+
+  private async writeDoc(path: [string, string], data: unknown): Promise<void> {
+    if (!this.fb) return;
+    try {
+      const { db, fs } = await this.firebase.handle();
+      await fs.setDoc(fs.doc(db, path[0], path[1]), data);
+    } catch (e) {
+      console.error('[firebase] write failed', e);
+    }
+  }
+
+  // ═══════════════ products ═══════════════
   upsertProduct(p: Product): void {
     this.products.update((list) => {
       const i = list.findIndex((x) => x.sku === p.sku);
@@ -102,18 +165,21 @@ export class DataStore {
       copy[i] = p;
       return copy;
     });
+    void this.writeDoc(['site', 'catalog'], { products: this.products() });
   }
 
   deleteProduct(sku: string): void {
     this.products.update((list) => list.filter((p) => p.sku !== sku));
+    void this.writeDoc(['site', 'catalog'], { products: this.products() });
   }
 
-  // ── categories ───────────────────────────────────────────────
+  // ═══════════════ categories ═══════════════
   updateCategory(c: CategoryDef): void {
     this.categories.update((list) => list.map((x) => (x.id === c.id ? c : x)));
+    void this.writeDoc(['site', 'categories'], { items: this.categories() });
   }
 
-  // ── quotes ───────────────────────────────────────────────────
+  // ═══════════════ quotes ═══════════════
   addQuote(req: QuoteRequest): StoredQuote {
     const q: StoredQuote = {
       ...req,
@@ -121,26 +187,65 @@ export class DataStore {
       createdAt: Date.now(),
       status: 'new',
     };
-    this.quotes.update((list) => [q, ...list]);
+    if (this.fb) {
+      // Firestore assigns the id; the snapshot listener brings it back.
+      void this.addQuoteRemote(q);
+    } else {
+      this.quotes.update((list) => [q, ...list]);
+    }
     return q;
+  }
+
+  private async addQuoteRemote(q: StoredQuote): Promise<void> {
+    try {
+      const { db, fs } = await this.firebase.handle();
+      const { id: _omit, ...payload } = q;
+      void _omit;
+      await fs.addDoc(fs.collection(db, 'quotes'), payload);
+    } catch (e) {
+      console.error('[firebase] addQuote failed', e);
+    }
   }
 
   setQuoteStatus(id: string, status: QuoteStatus): void {
     this.quotes.update((list) => list.map((q) => (q.id === id ? { ...q, status } : q)));
+    if (this.fb) this.updateQuoteRemote(id, { status });
   }
 
   deleteQuote(id: string): void {
     this.quotes.update((list) => list.filter((q) => q.id !== id));
+    if (this.fb) this.deleteQuoteRemote(id);
   }
 
-  // ── content ──────────────────────────────────────────────────
+  private async updateQuoteRemote(id: string, patch: Partial<StoredQuote>): Promise<void> {
+    try {
+      const { db, fs } = await this.firebase.handle();
+      await fs.updateDoc(fs.doc(db, 'quotes', id), patch);
+    } catch (e) {
+      console.error('[firebase] updateQuote failed', e);
+    }
+  }
+
+  private async deleteQuoteRemote(id: string): Promise<void> {
+    try {
+      const { db, fs } = await this.firebase.handle();
+      await fs.deleteDoc(fs.doc(db, 'quotes', id));
+    } catch (e) {
+      console.error('[firebase] deleteQuote failed', e);
+    }
+  }
+
+  // ═══════════════ content ═══════════════
   updateContent(patch: Partial<SiteContent>): void {
     this.content.update((c) => ({ ...c, ...patch }));
+    void this.writeDoc(['site', 'content'], this.content());
   }
 
-  // ── maintenance ──────────────────────────────────────────────
+  // ═══════════════ maintenance ═══════════════
   resetCatalog(): void {
     this.products.set(structuredClone(PRODUCTS));
     this.categories.set(structuredClone(CATEGORIES));
+    void this.writeDoc(['site', 'catalog'], { products: this.products() });
+    void this.writeDoc(['site', 'categories'], { items: this.categories() });
   }
 }

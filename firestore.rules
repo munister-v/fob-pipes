@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// Firestore security rules for the Ф.О.Б site.
+//
+// Model:
+//  • site/* (catalog, categories, content) — publicly readable; writes only
+//    by an authenticated admin (Firebase Auth).
+//  • quotes/* — anyone may CREATE a request (public quote form); only an
+//    authenticated admin may read, update status or delete.
+//
+// To make the admin authenticated: enable Firebase Auth (Email/Password),
+// create one admin user, and switch admin-auth.service.ts to sign in with it.
+// Until then, set ADMIN-less DEMO rules (see bottom) — but do NOT ship those.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /site/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /quotes/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// QUICK DEMO (INSECURE — anyone can edit everything). Use only to test,
+// replace with the rules above before going public:
+//
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /{document=**} { allow read, write: if true; }
+//   }
+// }
