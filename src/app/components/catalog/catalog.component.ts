@@ -50,4 +50,8 @@ export class CatalogComponent {
   readonly hasFilters = computed(
     () => this.fCategory() !== null || this.fDiameter() !== null || this.fUsage() !== null
   );
+
+  trackBySku(_: number, p: { sku: string }): string { return p.sku; }
+  trackById(_: number, item: { id: string }): string { return item.id; }
+  trackByNum(_: number, n: number): number { return n; }
 }

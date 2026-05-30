@@ -2,12 +2,12 @@ import { CategoryDef, Product } from '../models/product.model';
 
 /** Категории продукции — Q-Industrial style indexed blocks. */
 export const CATEGORIES: CategoryDef[] = [
-  { id: 'pipe', index: '01', title: 'Трубы', blurb: 'Канализационные трубы для внутренних и наружных систем.' },
-  { id: 'bend', index: '02', title: 'Отводы', blurb: 'Углы 45° и 87° для изменения направления трассы.' },
-  { id: 'coupling', index: '03', title: 'Муфты', blurb: 'Соединительные муфты для стыковки участков.' },
-  { id: 'tee', index: '04', title: 'Тройники', blurb: 'Ответвления и врезки в магистраль.' },
-  { id: 'revision', index: '05', title: 'Ревизии', blurb: 'Прочистные элементы и лючки доступа.' },
-  { id: 'reducer', index: '06', title: 'Переходы', blurb: 'Редукции между диаметрами трубопровода.' },
+  { id: 'pipe', index: '01', title: 'Трубы', blurb: 'Канализационные трубы для внутренних и наружных систем.', img: 'assets/img/hero-pipes.jpg' },
+  { id: 'bend', index: '02', title: 'Отводы', blurb: 'Углы 45° и 87° для изменения направления трассы.', img: 'assets/img/prod-1.jpg' },
+  { id: 'coupling', index: '03', title: 'Муфты', blurb: 'Соединительные муфты для стыковки участков.', img: 'assets/img/prod-3.jpg' },
+  { id: 'tee', index: '04', title: 'Тройники', blurb: 'Ответвления и врезки в магистраль.', img: 'assets/img/prod-5.jpg' },
+  { id: 'revision', index: '05', title: 'Ревизии', blurb: 'Прочистные элементы и лючки доступа.', img: 'assets/img/prod-2.jpg' },
+  { id: 'reducer', index: '06', title: 'Переходы', blurb: 'Редукции между диаметрами трубопровода.', img: 'assets/img/prod-6.jpg' },
 ];
 
 /** Mock data. In production this is served by the backend / 1C. */
@@ -69,6 +69,16 @@ export const PRODUCTS: Product[] = [
     usage: 'external',
     diameter: 110,
     spec: 'Угол 45° · раструбный',
+    availability: 'check',
+    material: 'ПВХ',
+  },
+  {
+    sku: 'FT-BEND-110-87',
+    title: 'Отвод Ø110 / 87°',
+    category: 'bend',
+    usage: 'external',
+    diameter: 110,
+    spec: 'Угол 87° · раструбный',
     availability: 'check',
     material: 'ПВХ',
   },

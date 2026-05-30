@@ -13,7 +13,7 @@
         <span class="filters__label">Категория</span>
         <div class="filters__row">
           <button class="f" [class.f--on]="fCategory() === null" (click)="setCategory(null)">Все</button>
-          <button class="f" *ngFor="let c of categories"
+          <button class="f" *ngFor="let c of categories; trackBy: trackById"
                   [class.f--on]="fCategory() === c.id" (click)="setCategory(c.id)">{{ c.title }}</button>
         </div>
       </div>
@@ -22,7 +22,7 @@
         <span class="filters__label">Диаметр, мм</span>
         <div class="filters__row">
           <button class="f" [class.f--on]="fDiameter() === null" (click)="setDiameter(null)">Все</button>
-          <button class="f mono-num" *ngFor="let d of diameters"
+          <button class="f mono-num" *ngFor="let d of diameters; trackBy: trackByNum"
                   [class.f--on]="fDiameter() === d" (click)="setDiameter(d)">Ø{{ d }}</button>
         </div>
       </div>
@@ -40,7 +40,7 @@
     </div>
 
     <div class="grid" *ngIf="filtered().length; else empty">
-      <app-product-card *ngFor="let p of filtered()" [product]="p" appReveal></app-product-card>
+      <app-product-card *ngFor="let p of filtered(); trackBy: trackBySku" [product]="p" appReveal></app-product-card>
     </div>
 
     <ng-template #empty>

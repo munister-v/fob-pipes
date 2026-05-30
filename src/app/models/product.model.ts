@@ -30,6 +30,8 @@ export interface CategoryDef {
   /** two-digit index marker, Q-Industrial style */
   index: string;
   blurb: string;
+  /** product photo for the category card */
+  img: string;
 }
 
 /** A line in the «собрать заявку» request (instead of a cart). */

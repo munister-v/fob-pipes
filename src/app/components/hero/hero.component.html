@@ -1,36 +1,11 @@
 <section class="hero" id="top">
   <div class="hero__media" aria-hidden="true">
-    <img src="assets/img/pipes-2.jpg" alt="" />
+    <img src="assets/img/pipes-2.jpg" alt="" fetchpriority="high" />
     <span class="hero__media-fade"></span>
     <span class="hero__media-glow"></span>
-
-    <span class="hero__dial">
-      <svg viewBox="0 0 160 160" fill="none">
-        <circle cx="80" cy="80" r="66" stroke="currentColor" stroke-width="1" opacity="0.35" />
-        <circle cx="80" cy="80" r="46" stroke="currentColor" stroke-width="1" />
-        <circle cx="80" cy="80" r="26" stroke="var(--c-accent)" stroke-width="1.5" />
-        <circle cx="80" cy="80" r="3" fill="var(--c-accent)" />
-        <g class="hero__dial-rot"><line x1="80" y1="80" x2="80" y2="16" stroke="var(--c-accent)" stroke-width="1.5" /></g>
-      </svg>
-    </span>
-
-    <span class="hero__callout">
-      <span class="hero__callout-line"></span>
-      <span class="hero__callout-chip">
-        <b>ПВХ · Ø110—200</b>
-        <i>раструбная · наружная</i>
-      </span>
-    </span>
   </div>
 
-  <div class="hero__grid" aria-hidden="true"></div>
-
   <div class="shell hero__inner">
-    <div class="hero__meta">
-      <span class="hero__tag"><span class="dot"></span> ООО «Ф.О.Б» · ЗАВОД В ДОНЕЦКЕ С 1998</span>
-      <span class="hero__coord mono-num">[ 48.00°N · 37.80°E ]</span>
-    </div>
-
     <div class="hero__main">
       <h1 class="hero__title">
         <span class="ln"><span>ПРОИЗВОДИТЕЛЬ</span></span>
@@ -58,32 +33,26 @@
     <div class="hero__stats">
       <div class="stat">
         <span class="stat__num mono-num"><span [countUp]="1998" [duration]="1800"></span></span>
-        <span class="stat__label">[ год основания ]</span>
+        <span class="stat__label">Год основания</span>
       </div>
       <div class="stat">
         <span class="stat__num mono-num"><span [countUp]="200" suffix="+"></span></span>
-        <span class="stat__label">[ видов продукции ]</span>
+        <span class="stat__label">Видов продукции</span>
       </div>
       <div class="stat">
         <span class="stat__num mono-num">Ø32—315</span>
-        <span class="stat__label">[ диаметры, мм ]</span>
+        <span class="stat__label">Диаметры, мм</span>
       </div>
       <div class="stat">
         <span class="stat__num mono-num"><span [countUp]="14"></span></span>
-        <span class="stat__label">[ линий · ТПА ]</span>
+        <span class="stat__label">Линий и ТПА</span>
       </div>
     </div>
-
-    <button class="hero__scroll" (click)="go('categories')" aria-label="Листать вниз">
-      <span class="mono-num">SCROLL</span>
-      <span class="hero__scroll-line"><span></span></span>
-      <span class="hero__scroll-arrow">↓</span>
-    </button>
   </div>
 
   <div class="hero__ticker" aria-hidden="true">
     <div class="ticker__track">
-      <ng-container *ngFor="let _ of [0,1]">
+      <ng-container *ngFor="let _ of tickerDbl">
         <span>ПВХ</span><span class="sep">✳</span>
         <span>ПОЛИПРОПИЛЕН</span><span class="sep">✳</span>
         <span>ПНД</span><span class="sep">✳</span>

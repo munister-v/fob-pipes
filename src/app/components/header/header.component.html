@@ -34,13 +34,7 @@
     </nav>
 
     <div class="cluster">
-      <div class="switch">
-        <button class="switch__btn">{{ locale.lang() | uppercase }}</button>
-        <span class="switch__sep">/</span>
-        <button class="switch__btn">{{ locale.currency() }}</button>
-      </div>
-
-      <div class="nav__item" (mouseenter)="contactOpen.set(true)" (mouseleave)="contactOpen.set(false)">
+<div class="nav__item" (mouseenter)="contactOpen.set(true)" (mouseleave)="contactOpen.set(false)">
         <button class="nav__link" (click)="toggleContact()">
           Контакты <span class="caret" [class.caret--up]="contactOpen()">▾</span>
         </button>

@@ -1,67 +1,39 @@
-# ДОНПОЛИМЕР — фронтенд (Angular)
+# ООО «Ф.О.Б» — Производитель труб и фитингов
 
-Демонстрационный B2B-фронтенд производителя пластиковых труб и фитингов для
-внутренней и наружной канализации (Донецк). Catalog-first структура, заявки
-вместо корзины, без онлайн-оплаты. Визуальный язык вдохновлён Q Industrial:
-холодная industrial-эстетика, крупная строгая типографика, светло-серый фон
-`#E6E6E6`, красный акцент `#CA0000`, тонкие линии и строгая сетка.
+Angular 17 standalone site for **ООО «Ф.О.Б»** — manufacturer of plastic sewage pipes and fittings (brands «Юнипласт» / «Ф.О.Б», Donetsk, est. 1998).
 
-## Стек
+**Live:** https://munister.com.ua/fob/
 
-- Angular 17 (standalone components, signals, OnPush)
-- TypeScript, SCSS
-- Mock-данные, без бэкенда
-- Responsive layout
+## Stack
 
-## Запуск
+- Angular 17, standalone components, signals
+- SCSS, no UI library
+- ChangeDetectionStrategy.OnPush throughout
+- Mock catalog data (ready for backend / 1C integration)
+
+## Dev
 
 ```bash
 npm install
-npm start        # http://localhost:4200
+ng serve          # http://localhost:4200
 ```
 
-Сборка:
+## Deploy
 
 ```bash
-npm run build
+ng build --base-href=/fob/
+cp -R dist/donpipe-front/browser/. ~/munister-v.github.io/fob/
+cd ~/munister-v.github.io && git add fob/ && git commit -m "fob: update" && git push
 ```
 
-## Структура
+## Structure
 
 ```
 src/app/
-  components/      header, hero, categories, catalog, product-card,
-                   quote, production, timeline, certificates, contacts, footer
-  data/            catalog.data.ts        — mock-каталог
-  models/          product.model.ts       — доменные типы
-  services/        catalog.service.ts     — доступ к каталогу
-                   quote.service.ts       — «собрать заявку» (signals)
-                   locale.service.ts      — задел под i18n + валюты
-  shared/          reveal.directive.ts    — scroll-reveal анимации
+  components/   # hero, header, catalog, categories, quote, production, gallery,
+                #  services, timeline, certificates, contacts, footer, product-card
+  data/         # catalog.data.ts — mock products (200+ positions planned)
+  models/       # product.model.ts
+  services/     # catalog.service.ts, quote.service.ts, locale.service.ts
+  shared/       # reveal.directive.ts, count-up.directive.ts
 ```
-
-## Секции
-
-Sticky header → hero → категории → каталог с фильтрами → карточки товаров →
-«собрать заявку» → производство и история → timeline → сертификаты →
-контакты → footer с SEO-текстом.
-
-## Заявка
-
-«Собрать заявку» заменяет корзину: позиции + количество, имя, телефон,
-город/район, комментарий, тип клиента (частный / магазин / строительный
-объект / другое). После отправки показывается подтверждение. Реальной отправки
-нет — см. `quote.service.ts`:
-
-```ts
-// TODO: send quote to backend -> Telegram bot + email duplicate + optional 1C export
-```
-
-## Задел на будущее
-
-- **i18n** (ru / uk / en) и **смена валюты** (RUB / UAH / USD) —
-  `services/locale.service.ts`, состояние на signals, готово к подключению
-  ngx-translate / Angular i18n и источника курсов.
-- **Интеграции**: Telegram-бот, дублирование на email, экспорт в 1С —
-  точка входа `QuoteService.submit()`.
-- Каталог отдаётся через `CatalogService` — мок легко заменить на HTTP.

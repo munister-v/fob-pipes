@@ -11,6 +11,8 @@ import { CountUpDirective } from '../../shared/count-up.directive';
   styleUrl: './hero.component.scss',
 })
 export class HeroComponent {
+  readonly tickerDbl = [0, 1];
+
   go(id: string): void {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
