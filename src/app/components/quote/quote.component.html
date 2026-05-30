@@ -1,0 +1,220 @@
+<section class="section quote" id="quote">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">03</span> Конструктор заявки</div>
+        <h2 class="section-title">Собрать<br />заявку</h2>
+      </div>
+      <p class="head__note">
+        Добавьте позиции в список, укажите количество и контакты — менеджер свяжется,
+        подтвердит наличие и согласует отгрузку. Цены без онлайн-оплаты.
+      </p>
+    </div>
+
+    <div class="done" *ngIf="submitted(); else builder" appReveal>
+      <div class="done__mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12l4.5 4.5L19 7" />
+        </svg>
+      </div>
+      <h3 class="done__title">Заявка сформирована</h3>
+      <p class="done__text">
+        В реальном проекте она будет отправлена в Telegram-группу и продублирована на email.
+        Менеджер свяжется в рабочие часы.
+      </p>
+      <button class="btn btn--accent" (click)="reset()">
+        <span>Создать новую заявку</span> <span class="arrow">→</span>
+      </button>
+    </div>
+
+    <ng-template #builder>
+      <div class="constructor">
+        <!-- Browse panel -->
+        <div class="browse" appReveal>
+          <div class="browse__head">
+            <span class="browse__step">01</span>
+            <div>
+              <h3>Выберите позиции</h3>
+              <p>Найдите нужное по названию или фильтруйте по категории.</p>
+            </div>
+          </div>
+
+          <label class="search">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <circle cx="9" cy="9" r="6" />
+              <path d="m14 14 4 4" stroke-linecap="round" />
+            </svg>
+            <input type="text" placeholder="Поиск по названию, артикулу или диаметру…"
+                   [ngModel]="search()" (ngModelChange)="search.set($event)" />
+            <button class="search__clear" *ngIf="search()" (click)="search.set('')" type="button" aria-label="Очистить">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </button>
+          </label>
+
+          <div class="browse__cats">
+            <button class="cat-pill" [class.cat-pill--on]="browseCat() === 'all'" (click)="setCat('all')">
+              Все <span class="mono-num">{{ browsed().length }}</span>
+            </button>
+            <button class="cat-pill" *ngFor="let c of categories; trackBy: trackByCatId"
+                    [class.cat-pill--on]="browseCat() === c.id" (click)="setCat(c.id)">
+              {{ c.title }}
+            </button>
+          </div>
+
+          <div class="browse__grid" *ngIf="browsed().length > 0; else noMatch">
+            <div class="prod" *ngFor="let p of browsed(); trackBy: trackByProdSku" [class.prod--in]="qtyOf(p.sku) > 0">
+              <div class="prod__thumb">
+                <img [src]="thumbFor(p)" [alt]="p.title" loading="lazy" />
+                <span class="prod__thumb-tag" [class.prod__thumb-tag--ext]="p.usage === 'external'">
+                  {{ p.usage === 'external' ? 'Наружная' : 'Внутренняя' }}
+                </span>
+              </div>
+
+              <div class="prod__info">
+                <span class="prod__sku mono-num">{{ p.sku }}</span>
+                <h4 class="prod__title">{{ p.title }}</h4>
+                <p class="prod__spec">{{ p.spec }}</p>
+                <div class="prod__chips">
+                  <span class="chip chip--accent mono-num">Ø {{ p.diameter }}</span>
+                  <span class="chip">{{ p.material }}</span>
+                </div>
+              </div>
+
+              <div class="prod__action">
+                <button *ngIf="qtyOf(p.sku) === 0" class="prod__add" (click)="inc(p)">
+                  <span>Добавить</span> <i>+</i>
+                </button>
+                <div *ngIf="qtyOf(p.sku) > 0" class="qty">
+                  <button class="qty__btn" (click)="dec(p)" aria-label="Уменьшить">−</button>
+                  <input class="qty__val mono-num" type="number" min="1"
+                         [ngModel]="qtyOf(p.sku)"
+                         (ngModelChange)="setQty(p.sku, $event)" />
+                  <button class="qty__btn" (click)="inc(p)" aria-label="Увеличить">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noMatch>
+            <div class="browse__empty">
+              <p>По запросу «{{ search() }}» ничего не найдено.</p>
+              <button class="link-btn" (click)="search.set(''); setCat('all')">Сбросить фильтры</button>
+            </div>
+          </ng-template>
+        </div>
+
+        <!-- Summary sidebar -->
+        <aside class="summary" appReveal [revealDelay]="120">
+          <div class="summary__sticky">
+            <div class="summary__head">
+              <span class="browse__step">02</span>
+              <div>
+                <h3>Ваша заявка</h3>
+                <p *ngIf="quote.count() === 0" class="summary__empty-note">Список пока пуст</p>
+              </div>
+            </div>
+
+            <div class="totals" *ngIf="quote.count() > 0">
+              <div class="totals__cell">
+                <span class="totals__num mono-num">{{ quote.count() }}</span>
+                <span class="totals__lbl">{{ quote.count() === 1 ? 'позиция' : (quote.count() < 5 ? 'позиции' : 'позиций') }}</span>
+              </div>
+              <div class="totals__cell">
+                <span class="totals__num mono-num">{{ quote.totalQty() }}</span>
+                <span class="totals__lbl">шт. суммарно</span>
+              </div>
+              <div class="totals__cell">
+                <span class="totals__num mono-num">{{ catCount() }}</span>
+                <span class="totals__lbl">{{ catCount() === 1 ? 'категория' : 'категорий' }}</span>
+              </div>
+            </div>
+
+            <div class="summary__body">
+              <div class="summary__empty" *ngIf="quote.count() === 0">
+                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                  <rect x="9" y="14" width="30" height="28" rx="2" />
+                  <path d="M16 14V10a8 8 0 0 1 16 0v4" />
+                </svg>
+                <p>Добавляйте позиции из&nbsp;списка слева — они появятся здесь.</p>
+              </div>
+
+              <div class="summary__lines" *ngIf="quote.count() > 0">
+                <div class="sline" *ngFor="let l of quote.lines(); trackBy: trackBySku">
+                  <div class="sline__info">
+                    <span class="sline__title">{{ l.product.title }}</span>
+                    <span class="sline__sku mono-num">{{ l.product.sku }} · Ø{{ l.product.diameter }}</span>
+                  </div>
+                  <div class="qty qty--sm">
+                    <button class="qty__btn" (click)="dec(l.product)" aria-label="−">−</button>
+                    <input class="qty__val mono-num" type="number" min="1"
+                           [ngModel]="l.qty" (ngModelChange)="setQty(l.product.sku, $event)" />
+                    <button class="qty__btn" (click)="inc(l.product)" aria-label="+">+</button>
+                  </div>
+                  <button class="sline__del" (click)="remove(l.product.sku)" aria-label="Убрать">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <path d="M4 4l8 8M12 4l-8 8" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contacts form -->
+            <div class="contacts">
+              <button class="contacts__toggle" (click)="toggleContacts()" type="button"
+                      [class.contacts__toggle--open]="contactsOpen()">
+                <span class="browse__step">03</span>
+                <div>
+                  <h3>Контакты</h3>
+                  <p>{{ contactsOpen() ? 'Заполните и отправьте' : 'Нажмите чтобы заполнить' }}</p>
+                </div>
+                <span class="contacts__caret">▾</span>
+              </button>
+
+              <form class="cform" *ngIf="contactsOpen()" (ngSubmit)="send()">
+                <div class="field">
+                  <label>Имя <i>*</i></label>
+                  <input name="name" [(ngModel)]="name" placeholder="Как к вам обращаться" required />
+                </div>
+                <div class="field">
+                  <label>Телефон <i>*</i></label>
+                  <input name="phone" [(ngModel)]="phone" placeholder="+7 (949) ..." required />
+                </div>
+                <div class="field">
+                  <label>Город / район</label>
+                  <input name="city" [(ngModel)]="city" placeholder="Донецк, Киевский р-н" />
+                </div>
+
+                <div class="field">
+                  <label>Тип клиента</label>
+                  <div class="types">
+                    <button type="button" class="type" *ngFor="let t of clientTypes; trackBy: trackByClientId"
+                            [class.type--on]="clientType === t.id" (click)="clientType = t.id">
+                      {{ t.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Комментарий</label>
+                  <textarea name="comment" [(ngModel)]="comment" rows="3"
+                            placeholder="Объём, сроки, самовывоз / доставка"></textarea>
+                </div>
+
+                <button class="submit" type="submit" [disabled]="!canSubmit || sending()">
+                  <span>{{ sending() ? 'Формируем…' : 'Отправить заявку' }}</span>
+                  <span class="arrow">→</span>
+                </button>
+                <p class="cform__hint">
+                  Нажимая, вы соглашаетесь на обработку заявки менеджером. Оплата не требуется.
+                </p>
+              </form>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </ng-template>
+  </div>
+</section>

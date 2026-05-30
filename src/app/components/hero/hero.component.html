@@ -1,0 +1,66 @@
+<section class="hero" id="top">
+  <div class="hero__media" aria-hidden="true">
+    <img src="assets/img/pipes-2.jpg" alt="" fetchpriority="high" />
+    <span class="hero__media-fade"></span>
+    <span class="hero__media-glow"></span>
+  </div>
+
+  <div class="shell hero__inner">
+    <div class="hero__main">
+      <h1 class="hero__title">
+        <span class="ln"><span>ПРОИЗВОДИТЕЛЬ</span></span>
+        <span class="ln"><span><span class="accent">ТРУБ</span> И ФИТИНГОВ</span></span>
+        <span class="ln line--out"><span>ВНУТРЕННЯЯ&nbsp;<i>/</i>&nbsp;НАРУЖНАЯ КАНАЛИЗАЦИЯ</span></span>
+      </h1>
+    </div>
+
+    <div class="hero__bottom">
+      <p class="hero__lead">
+        Одно из первых и крупнейших производств пластиковой канализации.
+        Трубы и фитинги из ПВХ, ПП и ПНД, Ø32–315 мм. Собственный завод,
+        5 экструзионных линий и 9 термопластавтоматов.
+        <b>Цены и наличие — по заявке.</b>
+      </p>
+
+      <div class="hero__cta">
+        <button class="btn btn--accent" (click)="go('catalog')">
+          <span>Каталог продукции</span> <span class="arrow">↗</span>
+        </button>
+        <button class="btn" (click)="go('quote')"><span>Собрать заявку</span> <span class="arrow">↗</span></button>
+      </div>
+    </div>
+
+    <div class="hero__stats">
+      <div class="stat">
+        <span class="stat__num mono-num"><span [countUp]="1998" [duration]="1800"></span></span>
+        <span class="stat__label">Год основания</span>
+      </div>
+      <div class="stat">
+        <span class="stat__num mono-num"><span [countUp]="200" suffix="+"></span></span>
+        <span class="stat__label">Видов продукции</span>
+      </div>
+      <div class="stat">
+        <span class="stat__num mono-num">Ø32—315</span>
+        <span class="stat__label">Диаметры, мм</span>
+      </div>
+      <div class="stat">
+        <span class="stat__num mono-num"><span [countUp]="14"></span></span>
+        <span class="stat__label">Линий и ТПА</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero__ticker" aria-hidden="true">
+    <div class="ticker__track">
+      <ng-container *ngFor="let _ of tickerDbl">
+        <span>ПВХ</span><span class="sep">✳</span>
+        <span>ПОЛИПРОПИЛЕН</span><span class="sep">✳</span>
+        <span>ПНД</span><span class="sep">✳</span>
+        <span>ЮНИПЛАСТ</span><span class="sep">✳</span>
+        <span>НАРУЖНАЯ КАНАЛИЗАЦИЯ</span><span class="sep">✳</span>
+        <span>ВНУТРЕННЯЯ КАНАЛИЗАЦИЯ</span><span class="sep">✳</span>
+        <span>AQUA-THERM</span><span class="sep">✳</span>
+      </ng-container>
+    </div>
+  </div>
+</section>

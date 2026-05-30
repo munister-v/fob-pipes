@@ -1,0 +1,76 @@
+<article class="card" [class.card--in]="quote.has(product.sku)">
+  <div class="card__art" [attr.data-cat]="product.category">
+    <div class="card__art-bg"></div>
+    <span class="card__sku mono-num">{{ product.sku }}</span>
+
+    <span class="card__usage" [class.card__usage--ext]="product.usage === 'external'">
+      <span class="card__usage-dot"></span>
+      {{ product.usage === 'external' ? 'Наружная' : 'Внутренняя' }}
+    </span>
+
+    <svg class="schema" viewBox="0 0 220 140" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient [attr.id]="'g-' + product.sku" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="currentColor" stop-opacity="0.16" />
+          <stop offset="1" stop-color="currentColor" stop-opacity="0.02" />
+        </linearGradient>
+      </defs>
+
+      <ng-container [ngSwitch]="product.category">
+        <g *ngSwitchCase="'pipe'">
+          <rect x="22" y="56" width="176" height="28" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <line x1="38" y1="56" x2="38" y2="84" stroke="currentColor" stroke-opacity="0.4" />
+          <ellipse cx="198" cy="70" rx="6" ry="14" stroke="currentColor" stroke-width="1.2" fill="var(--c-surface)" />
+        </g>
+        <g *ngSwitchCase="'bend'">
+          <path d="M30 100 L30 60 Q30 36 54 36 L130 36" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          <path d="M30 100 L30 60 Q30 36 54 36 L130 36" stroke="currentColor" stroke-width="14" stroke-opacity="0.12" stroke-linecap="round" />
+        </g>
+        <g *ngSwitchCase="'coupling'">
+          <rect x="30" y="50" width="50" height="40" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <rect x="78" y="44" width="64" height="52" rx="3" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <rect x="140" y="50" width="50" height="40" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+        </g>
+        <g *ngSwitchCase="'tee'">
+          <rect x="22" y="58" width="176" height="28" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <rect x="96" y="86" width="28" height="34" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+        </g>
+        <g *ngSwitchCase="'revision'">
+          <rect x="44" y="52" width="132" height="40" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <rect x="94" y="32" width="32" height="22" rx="2" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <circle cx="110" cy="43" r="4" stroke="currentColor" stroke-width="1.2" />
+        </g>
+        <g *ngSwitchCase="'reducer'">
+          <path d="M30 46 L116 56 L116 84 L30 94 Z" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+          <path d="M116 56 L186 60 L186 80 L116 84" [attr.fill]="'url(#g-' + product.sku + ')'" stroke="currentColor" stroke-width="1.2" />
+        </g>
+      </ng-container>
+
+      <text x="110" y="128" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55" letter-spacing="0.6">
+        Ø{{ product.diameter }} мм
+      </text>
+    </svg>
+  </div>
+
+  <div class="card__body">
+    <h3 class="card__title">{{ product.title }}</h3>
+    <p class="card__spec">{{ product.spec }}</p>
+
+    <div class="card__meta">
+      <span class="chip chip--accent mono-num">Ø {{ product.diameter }}</span>
+      <span class="chip">{{ product.material }}</span>
+    </div>
+
+    <div class="card__foot">
+      <span class="status" [class.status--order]="product.availability === 'order'">
+        <span class="status__dot"></span>
+        {{ product.availability === 'order' ? 'Под заказ' : 'Уточнить наличие' }}
+      </span>
+
+      <button class="add" (click)="add()" [disabled]="quote.has(product.sku)">
+        <span *ngIf="!quote.has(product.sku)">Добавить в заявку <i>+</i></span>
+        <span *ngIf="quote.has(product.sku)">В заявке <i>✓</i></span>
+      </button>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,28 @@
+<section class="section certs" id="certs">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">08</span> Сертификаты</div>
+        <h2 class="section-title">Качество<br />и допуски</h2>
+      </div>
+      <p class="head__note">
+        Полные копии документов и паспорта на партию предоставляем по запросу
+        вместе с подтверждением заявки.
+      </p>
+    </div>
+
+    <div class="grid">
+      <div class="cert" *ngFor="let c of certs; let i = index" appReveal [revealDelay]="i * 70">
+        <div class="cert__top">
+          <span class="cert__code">{{ c.code }}</span>
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <circle cx="13" cy="11" r="6" stroke="currentColor" stroke-width="1.4" />
+            <path d="M9 16 L7 24 L13 21 L19 24 L17 16" stroke="currentColor" stroke-width="1.4" />
+          </svg>
+        </div>
+        <h3 class="cert__title">{{ c.title }}</h3>
+        <p class="cert__note">{{ c.note }}</p>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,58 @@
+<section class="section catalog" id="catalog">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">02</span> Каталог</div>
+        <h2 class="section-title">Продукция</h2>
+      </div>
+      <div class="head__count mono-num">{{ filtered().length }} {{ hasFilters() ? 'найдено' : 'позиций' }}</div>
+    </div>
+
+    <div class="filters" appReveal>
+      <div class="filters__group">
+        <span class="filters__label">Категория</span>
+        <div class="filters__row">
+          <button class="f" [class.f--on]="fCategory() === null" (click)="setCategory(null)">Все</button>
+          <button class="f" *ngFor="let c of categories; trackBy: trackById"
+                  [class.f--on]="fCategory() === c.id" (click)="setCategory(c.id)">{{ c.title }}</button>
+        </div>
+      </div>
+
+      <div class="filters__group">
+        <span class="filters__label">Диаметр, мм</span>
+        <div class="filters__row">
+          <button class="f" [class.f--on]="fDiameter() === null" (click)="setDiameter(null)">Все</button>
+          <button class="f mono-num" *ngFor="let d of diameters; trackBy: trackByNum"
+                  [class.f--on]="fDiameter() === d" (click)="setDiameter(d)">Ø{{ d }}</button>
+        </div>
+      </div>
+
+      <div class="filters__group">
+        <span class="filters__label">Назначение</span>
+        <div class="filters__row">
+          <button class="f" [class.f--on]="fUsage() === null" (click)="setUsage(null)">Все</button>
+          <button class="f" [class.f--on]="fUsage() === 'internal'" (click)="setUsage('internal')">Внутренняя</button>
+          <button class="f" [class.f--on]="fUsage() === 'external'" (click)="setUsage('external')">Наружная</button>
+        </div>
+      </div>
+
+      <button class="filters__reset" *ngIf="hasFilters()" (click)="reset()">Сбросить ✕</button>
+    </div>
+
+    <div class="grid" *ngIf="filtered().length; else empty">
+      <app-product-card *ngFor="let p of filtered(); trackBy: trackBySku" [product]="p" appReveal></app-product-card>
+    </div>
+
+    <ng-template #empty>
+      <div class="noresult">
+        <p>По выбранным фильтрам ничего не найдено.</p>
+        <button class="btn" (click)="reset()">Сбросить фильтры</button>
+      </div>
+    </ng-template>
+
+    <p class="catalog__note">
+      <span class="dot"></span>
+      Без онлайн-оплаты. Цены и наличие подтверждаются менеджером после обработки заявки.
+    </p>
+  </div>
+</section>

@@ -1,0 +1,36 @@
+<section class="section" id="categories">
+  <div class="shell">
+    <div class="head" appReveal>
+      <div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">01</span> Категории продукции</div>
+        <h2 class="section-title">Что мы<br />производим</h2>
+      </div>
+      <p class="head__note">
+        Полная линейка элементов для монтажа канализационных систем —
+        от магистральной трубы до прочистных ревизий.
+      </p>
+    </div>
+
+    <div class="cats">
+      <button class="cat" *ngFor="let c of categories; let i = index"
+              appReveal [revealDelay]="i * 80" (click)="go('catalog')">
+        <div class="cat__img">
+          <img [src]="c.img" [alt]="c.title" loading="lazy" />
+          <span class="cat__img-overlay"></span>
+        </div>
+
+        <div class="cat__content">
+          <span class="cat__index mono-num">{{ c.index }} / 06</span>
+          <span class="cat__title">{{ c.title }}</span>
+          <span class="cat__blurb">{{ c.blurb }}</span>
+        </div>
+
+        <span class="cat__arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M7 17 L17 7 M9 7 H17 V15" />
+          </svg>
+        </span>
+      </button>
+    </div>
+  </div>
+</section>
