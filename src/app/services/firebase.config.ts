@@ -13,12 +13,12 @@
  * Пока поля пустые — сайт работает на localStorage (как сейчас), ничего не ломается.
  */
 export const FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: 'AIzaSyBBYCymKAlo8GVKKPBlnTt_dfidBS42JSk',
+  authDomain: 'fob-pipes.firebaseapp.com',
+  projectId: 'fob-pipes',
+  storageBucket: 'fob-pipes.firebasestorage.app',
+  messagingSenderId: '498531195499',
+  appId: '1:498531195499:web:a01a6455dea745fa7eaf2e',
 };
 
 /** True only when a real project id + apiKey are filled in above. */
