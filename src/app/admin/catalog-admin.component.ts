@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataStore } from '../services/data-store.service';
-import { Availability, Product, ProductCategory, Usage } from '../models/product.model';
+import { Availability, PriceUnit, Product, ProductCategory, Usage } from '../models/product.model';
 import { ToastService } from './toast.service';
+import { ExcelService, ImportResult } from '../services/excel.service';
 
-type SortKey = 'sku' | 'title' | 'diameter' | 'category';
+type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
 
 @Component({
   selector: 'app-catalog-admin',
@@ -21,11 +22,40 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category';
       <div class="adm-head__actions">
         <input class="adm-search" type="text" placeholder="Поиск…"
                [ngModel]="search()" (ngModelChange)="search.set($event)" />
+        <button class="adm-btn" (click)="exportExcel()" title="Скачать Excel-прайс">↓ Excel</button>
         <button class="adm-btn" (click)="exportCsv()">↓ CSV</button>
-        <label class="adm-btn">↑ Импорт<input type="file" accept=".json,.csv" hidden (change)="importFile($event)" /></label>
+        <label class="adm-btn" title="Импорт из Excel (.xlsx) или JSON/CSV">
+          ↑ Импорт
+          <input type="file" accept=".xlsx,.json,.csv" hidden (change)="importFile($event)" />
+        </label>
         <button class="adm-btn adm-btn--accent" (click)="create()">+ Товар</button>
       </div>
     </header>
+
+    <!-- Превью импорта Excel -->
+    <div class="adm-import-preview adm-card" *ngIf="importPreview() as prev">
+      <div class="adm-card__head">
+        <h2>Превью импорта — {{ prev.updates!.length }} записей</h2>
+        <div>
+          <button class="adm-btn adm-btn--accent" (click)="applyImport()">Применить</button>
+          <button class="adm-btn" (click)="importPreview.set(null)">Отмена</button>
+        </div>
+      </div>
+      <p class="adm-warn" *ngFor="let w of prev.warnings">⚠ {{ w }}</p>
+      <table class="adm-table adm-table--mini">
+        <tr><th>Артикул</th><th>Цена розн.</th><th>Цена опт.</th><th>Ед.</th><th>SKU 1C</th></tr>
+        <tr *ngFor="let u of prev.updates!.slice(0, 20)">
+          <td class="adm-mono">{{ u.sku }}</td>
+          <td class="adm-mono">{{ u.priceRetail ?? '—' }}</td>
+          <td class="adm-mono">{{ u.priceWholesale ?? '—' }}</td>
+          <td>{{ u.unit ?? '—' }}</td>
+          <td class="adm-mono">{{ u.sku1c ?? '—' }}</td>
+        </tr>
+        <tr *ngIf="prev.updates!.length > 20">
+          <td colspan="5" class="adm-empty">…и ещё {{ prev.updates!.length - 20 }}</td>
+        </tr>
+      </table>
+    </div>
 
     <div class="adm-toolbar">
       <div class="adm-tabs adm-tabs--wrap">
@@ -47,6 +77,7 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category';
             <th (click)="setSort('title')">Название <i>{{ arrow('title') }}</i></th>
             <th (click)="setSort('category')">Категория <i>{{ arrow('category') }}</i></th>
             <th (click)="setSort('diameter')">Ø <i>{{ arrow('diameter') }}</i></th>
+            <th (click)="setSort('priceRetail')">Цена розн. <i>{{ arrow('priceRetail') }}</i></th>
             <th>Назначение</th><th>Наличие</th><th></th>
           </tr>
         </thead>
@@ -56,6 +87,15 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category';
             <td>{{ p.title }}</td>
             <td>{{ catTitle(p.category) }}</td>
             <td class="adm-mono">{{ p.diameter }}</td>
+            <td class="adm-mono">
+              <ng-container *ngIf="(p.priceRetail ?? 0) > 0; else noPrice">
+                {{ p.priceRetail | number:'1.0-0':'ru' }} р.
+                <span class="adm-sub" *ngIf="(p.priceWholesale ?? 0) > 0">
+                  / {{ p.priceWholesale | number:'1.0-0':'ru' }} (опт)
+                </span>
+              </ng-container>
+              <ng-template #noPrice><span class="adm-sub">—</span></ng-template>
+            </td>
             <td>{{ p.usage === 'external' ? 'Наружная' : 'Внутренняя' }}</td>
             <td>
               <span class="adm-pill" [class.adm-pill--done]="p.availability === 'check'"
@@ -70,7 +110,7 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category';
             </td>
           </tr>
           <tr *ngIf="filtered().length === 0">
-            <td colspan="7" class="adm-empty">Ничего не найдено.</td>
+            <td colspan="8" class="adm-empty">Ничего не найдено.</td>
           </tr>
         </tbody>
       </table>
@@ -132,6 +172,38 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category';
           </label>
         </div>
 
+        <!-- Цены -->
+        <h3 class="adm-modal__section">Цены</h3>
+        <div class="adm-grid2">
+          <label class="adm-field">
+            <span>Цена розничная (руб.)</span>
+            <input type="number" [(ngModel)]="d.priceRetail" name="priceRetail" min="0" placeholder="0" />
+          </label>
+          <label class="adm-field">
+            <span>Цена оптовая (руб.)</span>
+            <input type="number" [(ngModel)]="d.priceWholesale" name="priceWholesale" min="0" placeholder="0" />
+          </label>
+        </div>
+        <div class="adm-grid2">
+          <label class="adm-field">
+            <span>Единица измерения</span>
+            <select [(ngModel)]="d.unit" name="unit">
+              <option value="шт">шт</option>
+              <option value="м.п.">м.п.</option>
+              <option value="кг">кг</option>
+              <option value="компл.">компл.</option>
+            </select>
+          </label>
+          <label class="adm-field">
+            <span>Опт от (шт)</span>
+            <input type="number" [(ngModel)]="d.wholesaleFrom" name="wholesaleFrom" min="1" placeholder="10" />
+          </label>
+        </div>
+        <label class="adm-field">
+          <span>SKU в 1С (необязательно)</span>
+          <input [(ngModel)]="d.sku1c" name="sku1c" placeholder="000001234" class="adm-mono" />
+        </label>
+
         <p class="adm-modal__err" *ngIf="dupErr()">Товар с таким артикулом уже существует.</p>
 
         <div class="adm-modal__foot">
@@ -145,6 +217,7 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category';
 export class CatalogAdminComponent {
   readonly store = inject(DataStore);
   private readonly toast = inject(ToastService);
+  private readonly excel = inject(ExcelService);
 
   readonly search = signal('');
   readonly fCat = signal<'all' | ProductCategory>('all');
@@ -155,6 +228,7 @@ export class CatalogAdminComponent {
   readonly draft = signal<Product | null>(null);
   readonly isNew = signal(false);
   readonly dupErr = signal(false);
+  readonly importPreview = signal<ImportResult | null>(null);
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -169,7 +243,8 @@ export class CatalogAdminComponent {
         (!q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.spec.toLowerCase().includes(q))
     );
     list = [...list].sort((a, b) => {
-      const av = a[key], bv = b[key];
+      const av = (a as unknown as Record<string, unknown>)[key] ?? 0;
+      const bv = (b as unknown as Record<string, unknown>)[key] ?? 0;
       return (typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv))) * dir;
     });
     return list;
@@ -192,7 +267,7 @@ export class CatalogAdminComponent {
     this.dupErr.set(false);
     this.draft.set({
       sku: '', title: '', category: 'pipe' as ProductCategory, usage: 'internal' as Usage,
-      diameter: 110, spec: '', availability: 'check' as Availability, material: 'ПВХ',
+      diameter: 110, spec: '', availability: 'check' as Availability, material: 'ПВХ', unit: 'шт',
     });
   }
 
@@ -233,25 +308,30 @@ export class CatalogAdminComponent {
     }
   }
 
-  // ── export / import ──
-  exportCsv(): void {
-    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
-    const head = ['sku', 'title', 'category', 'usage', 'diameter', 'material', 'spec', 'availability'];
-    const rows = [head, ...this.filtered().map((p) => head.map((k) => String((p as unknown as Record<string, unknown>)[k] ?? '')))];
-    const csv = '﻿' + rows.map((r) => r.map(esc).join(';')).join('\r\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fob-catalog-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    this.toast.ok('CSV скачан');
+  // ── Excel ──────────────────────────────────────────────────────────
+
+  async exportExcel(): Promise<void> {
+    await this.excel.exportCatalog(this.store.products());
+    this.toast.ok('Excel-прайс скачан');
   }
 
-  importFile(ev: Event): void {
+  async importFile(ev: Event): Promise<void> {
     const input = ev.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    input.value = '';
+
+    if (file.name.endsWith('.xlsx')) {
+      const result = await this.excel.importCatalog(file);
+      if (!result.ok) {
+        this.toast.err(result.error ?? 'Ошибка импорта');
+        return;
+      }
+      this.importPreview.set(result);
+      return;
+    }
+
+    // JSON / CSV (старый путь)
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -267,7 +347,37 @@ export class CatalogAdminComponent {
       }
     };
     reader.readAsText(file);
-    input.value = '';
+  }
+
+  applyImport(): void {
+    const prev = this.importPreview();
+    if (!prev?.updates) return;
+    let applied = 0;
+    for (const patch of prev.updates) {
+      const existing = this.store.products().find((p) => p.sku === patch.sku);
+      if (existing) {
+        this.store.upsertProduct({ ...existing, ...patch });
+        applied++;
+      }
+    }
+    this.importPreview.set(null);
+    this.toast.ok(`Обновлено ${applied} из ${prev.updates.length} товаров`);
+  }
+
+  // ── CSV (старый) ───────────────────────────────────────────────────
+
+  exportCsv(): void {
+    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const head = ['sku', 'title', 'category', 'usage', 'diameter', 'material', 'spec', 'availability', 'priceRetail', 'priceWholesale', 'unit'];
+    const rows = [head, ...this.filtered().map((p) => head.map((k) => String((p as unknown as Record<string, unknown>)[k] ?? '')))];
+    const csv = '﻿' + rows.map((r) => r.map(esc).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fob-catalog-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.toast.ok('CSV скачан');
   }
 
   private parseCsv(text: string): Product[] {
@@ -285,6 +395,9 @@ export class CatalogAdminComponent {
         diameter: +obj['diameter'] || 0,
         material: obj['material'] || '', spec: obj['spec'] || '',
         availability: (obj['availability'] || 'check') as Availability,
+        priceRetail: obj['priceRetail'] ? +obj['priceRetail'] : undefined,
+        priceWholesale: obj['priceWholesale'] ? +obj['priceWholesale'] : undefined,
+        unit: (obj['unit'] as PriceUnit) || 'шт',
       } as Product;
     });
   }

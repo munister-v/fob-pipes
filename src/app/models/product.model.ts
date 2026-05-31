@@ -9,6 +9,8 @@ export type Usage = 'internal' | 'external';
 /** Availability status — there is no online stock, everything is confirmed by hand. */
 export type Availability = 'check' | 'order';
 
+export type PriceUnit = 'шт' | 'м.п.' | 'кг' | 'компл.';
+
 export interface Product {
   /** stable SKU, ready for 1C / backend mapping */
   sku: string;
@@ -22,6 +24,14 @@ export interface Product {
   availability: Availability;
   /** decorative material tag */
   material: string;
+  /** prices — optional, shown only to admin or when publicPrices enabled */
+  priceRetail?: number;
+  priceWholesale?: number;
+  /** minimum wholesale qty */
+  wholesaleFrom?: number;
+  unit?: PriceUnit;
+  /** 1С external key for future integration */
+  sku1c?: string;
 }
 
 export interface CategoryDef {

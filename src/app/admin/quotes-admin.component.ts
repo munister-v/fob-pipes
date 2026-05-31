@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataStore, QuoteStatus, StoredQuote } from '../services/data-store.service';
 import { ToastService } from './toast.service';
+import { PdfService } from '../services/pdf.service';
+import { ExcelService } from '../services/excel.service';
 
 @Component({
   selector: 'app-quotes-admin',
@@ -13,11 +15,16 @@ import { ToastService } from './toast.service';
     <header class="adm-head">
       <div>
         <h1 class="adm-title">Заявки</h1>
-        <p class="adm-sub">{{ store.quotes().length }} всего · {{ newCount() }} новых · {{ filtered().length }} показано</p>
+        <p class="adm-sub">
+          {{ store.quotes().length }} всего · {{ newCount() }} новых · {{ filtered().length }} показано
+          <span *ngIf="totalSum() > 0" class="adm-sub-accent">· ~{{ fmtSum(totalSum()) }} руб.</span>
+        </p>
       </div>
       <div class="adm-head__actions">
         <input class="adm-search" type="text" placeholder="Поиск: имя, телефон, артикул…"
                [ngModel]="search()" (ngModelChange)="search.set($event)" />
+        <button class="adm-btn" (click)="exportExcel()" [disabled]="store.quotes().length === 0" title="Скачать Excel">↓ Excel</button>
+        <button class="adm-btn" (click)="exportPdfReport()" [disabled]="store.quotes().length === 0" title="Отчёт PDF">↓ PDF отчёт</button>
         <button class="adm-btn" (click)="exportCsv()" [disabled]="store.quotes().length === 0">↓ CSV</button>
         <button class="adm-btn" (click)="exportJson()" [disabled]="store.quotes().length === 0">↓ JSON</button>
       </div>
@@ -45,7 +52,10 @@ import { ToastService } from './toast.service';
           <span class="adm-quote__id adm-mono">{{ q.id }}</span>
           <span class="adm-quote__name">{{ q.name || 'Без имени' }}</span>
           <span class="adm-quote__phone adm-mono">{{ q.phone }}</span>
-          <span class="adm-quote__sum">{{ q.lines.length }} поз.</span>
+          <span class="adm-quote__sum">
+            {{ q.lines.length }} поз.
+            <ng-container *ngIf="quoteSum(q) > 0"> · {{ fmtSum(quoteSum(q)) }} р.</ng-container>
+          </span>
           <span class="adm-quote__date">{{ q.createdAt | date: 'dd.MM.yy HH:mm' }}</span>
           <span class="adm-pill" [class.adm-pill--new]="q.status === 'new'"
                 [class.adm-pill--prog]="q.status === 'in_progress'"
@@ -77,10 +87,30 @@ import { ToastService } from './toast.service';
             <div>
               <h4>Позиции ({{ q.lines.length }})</h4>
               <table class="adm-table adm-table--mini">
+                <thead>
+                  <tr>
+                    <th class="adm-mono">Артикул</th>
+                    <th>Наименование</th>
+                    <th>Кол-во</th>
+                    <th *ngIf="quoteSum(q) > 0">Цена</th>
+                    <th *ngIf="quoteSum(q) > 0">Сумма</th>
+                  </tr>
+                </thead>
                 <tr *ngFor="let l of q.lines">
                   <td class="adm-mono">{{ l.product.sku }}</td>
                   <td>{{ l.product.title }}</td>
-                  <td class="adm-mono">×{{ l.qty }}</td>
+                  <td class="adm-mono">×{{ l.qty }} {{ l.product.unit ?? 'шт' }}</td>
+                  <td class="adm-mono" *ngIf="quoteSum(q) > 0">
+                    {{ (l.product.priceRetail ?? 0) > 0 ? fmtSum(l.product.priceRetail!) : '—' }}
+                  </td>
+                  <td class="adm-mono" *ngIf="quoteSum(q) > 0">
+                    {{ (l.product.priceRetail ?? 0) > 0 ? fmtSum(l.product.priceRetail! * l.qty) : '—' }}
+                  </td>
+                </tr>
+                <tr *ngIf="quoteSum(q) > 0" class="adm-table__total">
+                  <td colspan="3"></td>
+                  <td>Итого:</td>
+                  <td class="adm-mono"><b>{{ fmtSum(quoteSum(q)) }} руб.</b></td>
                 </tr>
               </table>
             </div>
@@ -93,7 +123,11 @@ import { ToastService } from './toast.service';
               <button class="adm-chip" [class.is-active]="q.status === 'in_progress'" (click)="setStatus(q, 'in_progress')">В работе</button>
               <button class="adm-chip" [class.is-active]="q.status === 'done'" (click)="setStatus(q, 'done')">Закрыта</button>
             </div>
-            <button class="adm-icon adm-icon--del" (click)="remove(q)" title="Удалить заявку">✕ Удалить</button>
+            <div class="adm-quote__foot-actions">
+              <button class="adm-btn adm-btn--sm" (click)="downloadKP(q)" title="Коммерческое предложение PDF">↓ КП (PDF)</button>
+              <button class="adm-btn adm-btn--sm" (click)="downloadInvoice(q)" title="Счёт на оплату PDF">↓ Счёт (PDF)</button>
+              <button class="adm-icon adm-icon--del" (click)="remove(q)" title="Удалить заявку">✕ Удалить</button>
+            </div>
           </div>
         </div>
       </article>
@@ -103,6 +137,8 @@ import { ToastService } from './toast.service';
 export class QuotesAdminComponent {
   readonly store = inject(DataStore);
   private readonly toast = inject(ToastService);
+  private readonly pdf = inject(PdfService);
+  private readonly excel = inject(ExcelService);
 
   readonly filter = signal<'all' | QuoteStatus>('all');
   readonly search = signal('');
@@ -111,8 +147,20 @@ export class QuotesAdminComponent {
 
   readonly newCount = computed(() => this.count('new'));
 
+  readonly totalSum = computed(() =>
+    this.filtered().reduce((s, q) => s + this.quoteSum(q), 0)
+  );
+
   count(s: QuoteStatus): number {
     return this.store.quotes().filter((q) => q.status === s).length;
+  }
+
+  quoteSum(q: StoredQuote): number {
+    return q.lines.reduce((s, l) => s + (l.product.priceRetail ?? 0) * l.qty, 0);
+  }
+
+  fmtSum(n: number): string {
+    return n.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
   }
 
   readonly filtered = computed(() => {
@@ -176,6 +224,34 @@ export class QuotesAdminComponent {
     );
   }
 
+  // ── PDF ────────────────────────────────────────────────────────────
+
+  async downloadKP(q: StoredQuote): Promise<void> {
+    await this.pdf.quoteKP(q, this.store.content());
+    this.toast.ok('КП скачан');
+  }
+
+  async downloadInvoice(q: StoredQuote): Promise<void> {
+    const num = q.id.replace('Q-', '');
+    await this.pdf.invoice(q, this.store.content(), `ФОБ-${num}`);
+    this.toast.ok('Счёт скачан');
+  }
+
+  async exportPdfReport(): Promise<void> {
+    const period = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+    await this.pdf.reportQuotes(this.filtered(), period, this.store.content());
+    this.toast.ok('PDF-отчёт скачан');
+  }
+
+  // ── Excel ──────────────────────────────────────────────────────────
+
+  async exportExcel(): Promise<void> {
+    await this.excel.exportQuotes(this.store.quotes());
+    this.toast.ok('Excel скачан');
+  }
+
+  // ── CSV / JSON ─────────────────────────────────────────────────────
+
   exportJson(): void {
     this.download(
       JSON.stringify(this.store.quotes(), null, 2),
@@ -187,7 +263,7 @@ export class QuotesAdminComponent {
   exportCsv(): void {
     const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
     const rows = [
-      ['ID', 'Дата', 'Имя', 'Телефон', 'Город', 'Тип', 'Статус', 'Позиции', 'Комментарий', 'Заметка'],
+      ['ID', 'Дата', 'Имя', 'Телефон', 'Город', 'Тип', 'Статус', 'Позиции', 'Сумма', 'Комментарий', 'Заметка'],
     ];
     for (const q of this.filtered()) {
       rows.push([
@@ -199,6 +275,7 @@ export class QuotesAdminComponent {
         this.clientType(q.clientType),
         this.label(q.status),
         q.lines.map((l) => `${l.product.sku}×${l.qty}`).join('; '),
+        this.quoteSum(q) > 0 ? String(this.quoteSum(q)) : '',
         q.comment || '',
         q.note || '',
       ]);
