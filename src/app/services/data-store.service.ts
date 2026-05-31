@@ -112,18 +112,7 @@ export class DataStore {
     try {
       const { db, fs } = await this.firebase.handle();
 
-      // Seed the catalog/categories/content docs on first ever run.
-      const catRef = fs.doc(db, 'site', 'catalog');
-      const existing = await fs.getDoc(catRef);
-      if (!existing.exists()) {
-        try {
-          await fs.setDoc(catRef, { products: this.products() });
-          await fs.setDoc(fs.doc(db, 'site', 'categories'), { items: this.categories() });
-          await fs.setDoc(fs.doc(db, 'site', 'content'), this.content());
-        } catch (e) {
-          console.warn('[firebase] seed skipped until admin signs in', e);
-        }
-      }
+      await this.seedDefaults(db, fs);
 
       // Realtime mirrors → signals.
       fs.onSnapshot(fs.doc(db, 'site', 'catalog'), (d: { data: () => { products?: Product[] } }) => {
@@ -142,7 +131,7 @@ export class DataStore {
         if (x) this.content.set({ ...DEFAULT_CONTENT, ...x });
       });
       const authMod = await import('firebase/auth');
-      authMod.onAuthStateChanged(authMod.getAuth(), (user) => {
+      authMod.onAuthStateChanged(authMod.getAuth(), async (user) => {
         this.quotesUnsub?.();
         this.quotesUnsub = null;
 
@@ -150,6 +139,8 @@ export class DataStore {
           this.quotes.set([]);
           return;
         }
+
+        await this.seedDefaults(db, fs);
 
         this.quotesUnsub = fs.onSnapshot(
           fs.query(fs.collection(db, 'quotes'), fs.orderBy('createdAt', 'desc')),
@@ -162,6 +153,25 @@ export class DataStore {
       });
     } catch (e) {
       console.error('[firebase] init failed, falling back to local snapshot', e);
+    }
+  }
+
+  private async seedDefaults(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    db: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fs: any
+  ): Promise<void> {
+    const catRef = fs.doc(db, 'site', 'catalog');
+    const existing = await fs.getDoc(catRef);
+    if (existing.exists()) return;
+
+    try {
+      await fs.setDoc(catRef, { products: this.products() });
+      await fs.setDoc(fs.doc(db, 'site', 'categories'), { items: this.categories() });
+      await fs.setDoc(fs.doc(db, 'site', 'content'), this.content());
+    } catch (e) {
+      console.warn('[firebase] seed skipped until admin signs in', e);
     }
   }
 
