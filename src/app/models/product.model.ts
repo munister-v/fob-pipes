@@ -1,7 +1,16 @@
 /** Domain model for the catalog. Designed to map cleanly onto a future
  *  backend / 1C export, so field names stay stable and explicit. */
 
-export type ProductCategory = 'pipe' | 'bend' | 'coupling' | 'tee' | 'revision' | 'reducer';
+export type ProductCategory =
+  | 'pipe'      // трубы
+  | 'bend'      // колена / отводы
+  | 'tee'       // тройники + крестовины
+  | 'coupling'  // муфты
+  | 'reducer'   // редукции / переходы
+  | 'revision'  // ревизии
+  | 'plug'      // заглушки
+  | 'clamp'     // крепления / хомуты
+  | 'special';  // трапы, АБУ, манжеты, грибки, патрубки, переходники ч/п
 
 /** Назначение — внутренняя / наружная канализация */
 export type Usage = 'internal' | 'external';
