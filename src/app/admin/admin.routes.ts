@@ -25,6 +25,11 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./content-admin.component').then((m) => m.ContentAdminComponent),
       },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./settings-admin.component').then((m) => m.SettingsAdminComponent),
+      },
       { path: '**', redirectTo: 'dashboard' },
     ],
   },

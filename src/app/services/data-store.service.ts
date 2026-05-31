@@ -9,6 +9,8 @@ export interface StoredQuote extends QuoteRequest {
   id: string;
   createdAt: number;
   status: QuoteStatus;
+  /** internal manager note, not shown to the client */
+  note?: string;
 }
 
 export interface SiteContent {
@@ -179,6 +181,18 @@ export class DataStore {
     void this.writeDoc(['site', 'categories'], { items: this.categories() });
   }
 
+  addCategory(c: CategoryDef): void {
+    this.categories.update((list) =>
+      list.some((x) => x.id === c.id) ? list : [...list, c]
+    );
+    void this.writeDoc(['site', 'categories'], { items: this.categories() });
+  }
+
+  deleteCategory(id: string): void {
+    this.categories.update((list) => list.filter((c) => c.id !== id));
+    void this.writeDoc(['site', 'categories'], { items: this.categories() });
+  }
+
   // ═══════════════ quotes ═══════════════
   addQuote(req: QuoteRequest): StoredQuote {
     const q: StoredQuote = {
@@ -212,6 +226,11 @@ export class DataStore {
     if (this.fb) this.updateQuoteRemote(id, { status });
   }
 
+  setQuoteNote(id: string, note: string): void {
+    this.quotes.update((list) => list.map((q) => (q.id === id ? { ...q, note } : q)));
+    if (this.fb) this.updateQuoteRemote(id, { note });
+  }
+
   deleteQuote(id: string): void {
     this.quotes.update((list) => list.filter((q) => q.id !== id));
     if (this.fb) this.deleteQuoteRemote(id);
@@ -241,11 +260,37 @@ export class DataStore {
     void this.writeDoc(['site', 'content'], this.content());
   }
 
-  // ═══════════════ maintenance ═══════════════
+  // ═══════════════ maintenance / backup ═══════════════
   resetCatalog(): void {
     this.products.set(structuredClone(PRODUCTS));
     this.categories.set(structuredClone(CATEGORIES));
     void this.writeDoc(['site', 'catalog'], { products: this.products() });
     void this.writeDoc(['site', 'categories'], { items: this.categories() });
+  }
+
+  /** Whole-store snapshot for a backup file. */
+  snapshot(): Persisted {
+    return {
+      products: this.products(),
+      categories: this.categories(),
+      quotes: this.quotes(),
+      content: this.content(),
+    };
+  }
+
+  /** Restore from a backup file. Catalog/categories/content always; quotes optional. */
+  importAll(data: Partial<Persisted>, opts: { withQuotes?: boolean } = {}): void {
+    if (data.products?.length) this.products.set(data.products);
+    if (data.categories?.length) this.categories.set(data.categories);
+    if (data.content) this.content.set({ ...DEFAULT_CONTENT, ...data.content });
+    if (opts.withQuotes && data.quotes) this.quotes.set(data.quotes);
+    void this.writeDoc(['site', 'catalog'], { products: this.products() });
+    void this.writeDoc(['site', 'categories'], { items: this.categories() });
+    void this.writeDoc(['site', 'content'], this.content());
+  }
+
+  /** Backend label for the UI. */
+  backend(): 'firebase' | 'local' {
+    return this.fb ? 'firebase' : 'local';
   }
 }

@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AdminAuth } from './admin-auth.service';
 import { DataStore } from '../services/data-store.service';
+import { ToastService } from './toast.service';
 
 @Component({
   selector: 'app-admin-shell',
@@ -25,18 +26,19 @@ import { DataStore } from '../services/data-store.service';
         </label>
         <p class="adm-login__err" *ngIf="error()">Неверный пароль</p>
         <button class="adm-btn adm-btn--accent" type="submit">Войти</button>
-        <p class="adm-login__hint">Демо-доступ: <code>fob-admin</code></p>
+        <p class="adm-login__hint" *ngIf="auth.isDefault()">Демо-доступ: <code>fob-admin</code></p>
       </form>
     </div>
 
     <!-- Authed workspace -->
-    <div class="adm" *ngIf="auth.authed()">
+    <div class="adm" *ngIf="auth.authed()" [class.adm--menu]="menu()">
+      <div class="adm-scrim" (click)="menu.set(false)"></div>
       <aside class="adm-side">
-        <a class="adm-side__brand" routerLink="/admin/dashboard">
+        <a class="adm-side__brand" routerLink="/admin/dashboard" (click)="menu.set(false)">
           <img src="assets/img/logo-fob.png" alt="Ф.О.Б" />
           <span>Админка</span>
         </a>
-        <nav class="adm-nav">
+        <nav class="adm-nav" (click)="menu.set(false)">
           <a routerLink="/admin/dashboard" routerLinkActive="is-active">
             <span class="adm-nav__ico">▣</span> Обзор
           </a>
@@ -46,31 +48,54 @@ import { DataStore } from '../services/data-store.service';
           </a>
           <a routerLink="/admin/quotes" routerLinkActive="is-active">
             <span class="adm-nav__ico">✉</span> Заявки
-            <span class="adm-nav__badge" *ngIf="newCount() > 0">{{ newCount() }}</span>
+            <span class="adm-nav__badge adm-nav__badge--hot" *ngIf="newCount() > 0">{{ newCount() }}</span>
           </a>
           <a routerLink="/admin/content" routerLinkActive="is-active">
             <span class="adm-nav__ico">✎</span> Контент
           </a>
+          <a routerLink="/admin/settings" routerLinkActive="is-active">
+            <span class="adm-nav__ico">⚙</span> Настройки
+            <span class="adm-nav__dot" *ngIf="auth.isDefault()" title="Смените пароль"></span>
+          </a>
         </nav>
         <div class="adm-side__foot">
-          <a class="adm-side__link" href="/" target="_blank" rel="noopener">↗ Открыть сайт</a>
+          <span class="adm-side__be">
+            <span class="adm-dot" [class.adm-dot--ok]="store.backend()==='firebase'"></span>
+            {{ store.backend() === 'firebase' ? 'Firebase' : 'Локально' }}
+          </span>
+          <a class="adm-side__link" href="./" target="_blank" rel="noopener">↗ Открыть сайт</a>
           <button class="adm-side__link" (click)="auth.logout()">⎋ Выйти</button>
         </div>
       </aside>
+
       <main class="adm-main">
+        <button class="adm-burger" (click)="toggleMenu()" aria-label="Меню">☰</button>
         <router-outlet />
       </main>
+    </div>
+
+    <!-- Toasts -->
+    <div class="adm-toasts">
+      <div class="adm-toast" *ngFor="let t of toast.items()"
+           [class.adm-toast--err]="t.kind==='err'" [class.adm-toast--info]="t.kind==='info'"
+           (click)="toast.dismiss(t.id)">{{ t.text }}</div>
     </div>
   `,
 })
 export class AdminShellComponent {
   readonly auth = inject(AdminAuth);
   readonly store = inject(DataStore);
+  readonly toast = inject(ToastService);
 
   pw = '';
   readonly error = signal(false);
+  readonly menu = signal(false);
 
-  readonly newCount = () => this.store.quotes().filter((q) => q.status === 'new').length;
+  readonly newCount = computed(() => this.store.quotes().filter((q) => q.status === 'new').length);
+
+  toggleMenu(): void {
+    this.menu.update((v) => !v);
+  }
 
   submit(): void {
     if (this.auth.login(this.pw)) {
