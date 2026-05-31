@@ -1,6 +1,6 @@
 <header class="hdr" [class.hdr--scrolled]="scrolled()">
   <div class="shell hdr__row">
-    <a class="brand" (click)="go('top')">
+    <a class="brand" routerLink="/" (click)="closeAll()">
       <img class="brand__logo" src="assets/img/logo-fob.png" alt="Ф.О.Б" />
       <span class="brand__txt">
         <span class="brand__name">Ф.О.Б</span>
@@ -10,46 +10,32 @@
 
     <nav class="nav">
       <div class="nav__item" (mouseenter)="catalogOpen.set(true)" (mouseleave)="catalogOpen.set(false)">
-        <button class="nav__link" (click)="toggleCatalog()">
+        <a class="nav__link" routerLink="/catalog" routerLinkActive="is-active" (click)="closeAll()">
           Каталог
           <span class="caret" [class.caret--up]="catalogOpen()">▾</span>
-        </button>
+        </a>
         <div class="dropdown" [class.dropdown--open]="catalogOpen()">
           <div class="dropdown__grid">
-            <button (click)="go('catalog')"><b>Трубы</b><span>Внутренняя · наружная</span></button>
-            <button (click)="go('catalog')"><b>Отводы</b><span>45° · 87°</span></button>
-            <button (click)="go('catalog')"><b>Муфты</b><span>Соединения</span></button>
-            <button (click)="go('catalog')"><b>Тройники</b><span>Ответвления</span></button>
-            <button (click)="go('catalog')"><b>Ревизии</b><span>Прочистка</span></button>
-            <button (click)="go('catalog')"><b>Переходы</b><span>Редукции</span></button>
+            <a routerLink="/catalog" (click)="closeAll()"><b>Трубы</b><span>Внутренняя · наружная</span></a>
+            <a routerLink="/catalog" (click)="closeAll()"><b>Отводы</b><span>45° · 87°</span></a>
+            <a routerLink="/catalog" (click)="closeAll()"><b>Муфты</b><span>Соединения</span></a>
+            <a routerLink="/catalog" (click)="closeAll()"><b>Тройники</b><span>Ответвления</span></a>
+            <a routerLink="/catalog" (click)="closeAll()"><b>Ревизии</b><span>Прочистка</span></a>
+            <a routerLink="/catalog" (click)="closeAll()"><b>Переходы</b><span>Редукции</span></a>
           </div>
-          <button class="dropdown__all" (click)="go('catalog')">Весь каталог ↗</button>
+          <a class="dropdown__all" routerLink="/catalog" (click)="closeAll()">Весь каталог ↗</a>
         </div>
       </div>
 
-      <button class="nav__link" (click)="go('categories')">Продукция</button>
-      <button class="nav__link" (click)="go('production')">Производство</button>
-      <button class="nav__link" (click)="go('timeline')">История</button>
-      <button class="nav__link" (click)="go('certs')">Сертификаты</button>
+      <a class="nav__link" routerLink="/proizvodstvo" routerLinkActive="is-active" (click)="closeAll()">Производство</a>
+      <a class="nav__link" routerLink="/kontakty" routerLinkActive="is-active" (click)="closeAll()">Контакты</a>
     </nav>
 
     <div class="cluster">
-<div class="nav__item" (mouseenter)="contactOpen.set(true)" (mouseleave)="contactOpen.set(false)">
-        <button class="nav__link" (click)="toggleContact()">
-          Контакты <span class="caret" [class.caret--up]="contactOpen()">▾</span>
-        </button>
-        <div class="dropdown dropdown--contact" [class.dropdown--open]="contactOpen()">
-          <a class="ct" href="tel:+79493063522"><span>Телефон</span><b>+7 (949) 306-35-22</b></a>
-          <a class="ct" href="mailto:FOBDonetsk@gmail.com"><span>E-mail</span><b>FOBDonetsk&#64;gmail.com</b></a>
-          <div class="ct"><span>Адрес</span><b>г. Донецк, ул. Калинина, 102</b></div>
-          <button class="ct__btn" (click)="go('contacts')">Оставить заявку ↗</button>
-        </div>
-      </div>
-
-      <button class="quote-btn" (click)="go('quote')">
+      <a class="quote-btn" routerLink="/zayavka" (click)="closeAll()">
         Заявка
         <span class="quote-btn__count" *ngIf="quote.count() > 0">{{ quote.count() }}</span>
-      </button>
+      </a>
 
       <button class="burger" [class.burger--open]="mobileOpen()" (click)="toggleMobile()" aria-label="Меню">
         <span></span><span></span><span></span>
@@ -59,19 +45,16 @@
 
   <div class="drawer" [class.drawer--open]="mobileOpen()">
     <nav class="drawer__nav">
-      <button (click)="go('catalog')"><span class="mono-num">01</span> Каталог</button>
-      <button (click)="go('categories')"><span class="mono-num">02</span> Продукция</button>
-      <button (click)="go('production')"><span class="mono-num">03</span> Производство</button>
-      <button (click)="go('gallery')"><span class="mono-num">04</span> Галерея</button>
-      <button (click)="go('services')"><span class="mono-num">05</span> Услуги</button>
-      <button (click)="go('timeline')"><span class="mono-num">06</span> История</button>
-      <button (click)="go('certs')"><span class="mono-num">07</span> Сертификаты</button>
-      <button (click)="go('contacts')"><span class="mono-num">08</span> Контакты</button>
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact:true}" (click)="closeAll()"><span class="mono-num">01</span> Главная</a>
+      <a routerLink="/catalog" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">02</span> Каталог</a>
+      <a routerLink="/proizvodstvo" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">03</span> Производство</a>
+      <a routerLink="/zayavka" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">04</span> Заявка</a>
+      <a routerLink="/kontakty" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">05</span> Контакты</a>
     </nav>
     <div class="drawer__foot">
       <a class="drawer__contact" href="tel:+79493063522">+7 (949) 306-35-22</a>
       <a class="drawer__contact" href="mailto:FOBDonetsk@gmail.com">FOBDonetsk&#64;gmail.com</a>
-      <button class="drawer__cta" (click)="go('quote')">Собрать заявку ↗</button>
+      <a class="drawer__cta" routerLink="/zayavka" (click)="closeAll()">Собрать заявку ↗</a>
     </div>
   </div>
   <div class="drawer__scrim" [class.drawer__scrim--on]="mobileOpen()" (click)="closeAll()"></div>

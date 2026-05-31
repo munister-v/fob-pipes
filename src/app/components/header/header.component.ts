@@ -1,23 +1,23 @@
 import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { QuoteService } from '../../services/quote.service';
-import { LocaleService } from '../../services/locale.service';
+import { NavService } from '../../core/nav.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
 })
 export class HeaderComponent {
   readonly quote = inject(QuoteService);
-  readonly locale = inject(LocaleService);
+  private readonly nav = inject(NavService);
 
   readonly scrolled = signal(false);
   readonly catalogOpen = signal(false);
-  readonly contactOpen = signal(false);
   readonly mobileOpen = signal(false);
 
   @HostListener('window:scroll')
@@ -33,15 +33,6 @@ export class HeaderComponent {
     }
   }
 
-  toggleCatalog(): void {
-    this.catalogOpen.update((v) => !v);
-    this.contactOpen.set(false);
-  }
-  toggleContact(): void {
-    this.contactOpen.update((v) => !v);
-    this.catalogOpen.set(false);
-  }
-
   toggleMobile(): void {
     this.mobileOpen.update((v) => !v);
     document.body.style.overflow = this.mobileOpen() ? 'hidden' : '';
@@ -49,13 +40,13 @@ export class HeaderComponent {
 
   closeAll(): void {
     this.catalogOpen.set(false);
-    this.contactOpen.set(false);
     this.mobileOpen.set(false);
     document.body.style.overflow = '';
   }
 
+  /** legacy section-id navigation → routes (used by dropdown / drawer) */
   go(id: string): void {
     this.closeAll();
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.nav.go(id);
   }
 }

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NavService } from '../../core/nav.service';
 import { CountUpDirective } from '../../shared/count-up.directive';
 
 @Component({
@@ -13,7 +14,9 @@ import { CountUpDirective } from '../../shared/count-up.directive';
 export class HeroComponent {
   readonly tickerDbl = [0, 1];
 
+  private readonly nav = inject(NavService);
+
   go(id: string): void {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.nav.go(id);
   }
 }

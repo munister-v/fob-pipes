@@ -1,10 +1,12 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { ClientType, Product, QuoteLine, QuoteRequest } from '../models/product.model';
+import { DataStore } from './data-store.service';
 
 /** «Собрать заявку» — a quote builder that replaces a shopping cart.
  *  No prices, no payment: the request is assembled and then confirmed by hand. */
 @Injectable({ providedIn: 'root' })
 export class QuoteService {
+  private readonly store = inject(DataStore);
   private readonly _lines = signal<QuoteLine[]>([]);
 
   /** reactive snapshot of the current request lines */
@@ -62,8 +64,10 @@ export class QuoteService {
    */
   async submit(meta: Omit<QuoteRequest, 'lines'>): Promise<QuoteRequest> {
     const request = this.buildRequest(meta);
-    // TODO: send quote to backend -> Telegram bot + email duplicate + optional 1C export
-    console.info('[quote] assembled request (mock):', request);
+    // Persist to the local store so the admin panel sees incoming requests.
+    // TODO: also push to backend -> Telegram bot + email duplicate + optional 1C export
+    this.store.addQuote(request);
+    console.info('[quote] assembled request:', request);
     return request;
   }
 }

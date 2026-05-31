@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NavService } from '../../core/nav.service';
 import { RevealDirective } from '../../shared/reveal.directive';
 
 @Component({
@@ -11,7 +12,9 @@ import { RevealDirective } from '../../shared/reveal.directive';
   styleUrl: './contacts.component.scss',
 })
 export class ContactsComponent {
+  private readonly nav = inject(NavService);
+
   go(id: string): void {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.nav.go(id);
   }
 }

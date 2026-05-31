@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NavService } from '../../core/nav.service';
 import { RevealDirective } from '../../shared/reveal.directive';
 
 interface Service {
@@ -26,7 +27,9 @@ export class ServicesComponent {
     { no: '05', title: 'Доставка и самовывоз', text: 'Отгрузка по Донецку и региону. Самовывоз со склада или доставка на объект.', target: 'contacts' },
   ];
 
+  private readonly nav = inject(NavService);
+
   go(id: string): void {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.nav.go(id);
   }
 }

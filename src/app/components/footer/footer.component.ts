@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NavService } from '../../core/nav.service';
 
 @Component({
   selector: 'app-footer',
@@ -12,7 +13,9 @@ import { CommonModule } from '@angular/common';
 export class FooterComponent {
   readonly year = new Date().getFullYear();
 
+  private readonly nav = inject(NavService);
+
   go(id: string): void {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.nav.go(id);
   }
 }
