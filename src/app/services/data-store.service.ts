@@ -64,6 +64,7 @@ export class DataStore {
   readonly content = signal<SiteContent>({ ...DEFAULT_CONTENT });
 
   private ready = false;
+  private quotesUnsub: (() => void) | null = null;
 
   constructor() {
     if (this.fb) {
@@ -115,9 +116,13 @@ export class DataStore {
       const catRef = fs.doc(db, 'site', 'catalog');
       const existing = await fs.getDoc(catRef);
       if (!existing.exists()) {
-        await fs.setDoc(catRef, { products: this.products() });
-        await fs.setDoc(fs.doc(db, 'site', 'categories'), { items: this.categories() });
-        await fs.setDoc(fs.doc(db, 'site', 'content'), this.content());
+        try {
+          await fs.setDoc(catRef, { products: this.products() });
+          await fs.setDoc(fs.doc(db, 'site', 'categories'), { items: this.categories() });
+          await fs.setDoc(fs.doc(db, 'site', 'content'), this.content());
+        } catch (e) {
+          console.warn('[firebase] seed skipped until admin signs in', e);
+        }
       }
 
       // Realtime mirrors → signals.
@@ -136,13 +141,25 @@ export class DataStore {
         const x = d.data();
         if (x) this.content.set({ ...DEFAULT_CONTENT, ...x });
       });
-      fs.onSnapshot(
-        fs.query(fs.collection(db, 'quotes'), fs.orderBy('createdAt', 'desc')),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (qs: { docs: any[] }) => {
-          this.quotes.set(qs.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as StoredQuote));
+      const authMod = await import('firebase/auth');
+      authMod.onAuthStateChanged(authMod.getAuth(), (user) => {
+        this.quotesUnsub?.();
+        this.quotesUnsub = null;
+
+        if (!user) {
+          this.quotes.set([]);
+          return;
         }
-      );
+
+        this.quotesUnsub = fs.onSnapshot(
+          fs.query(fs.collection(db, 'quotes'), fs.orderBy('createdAt', 'desc')),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (qs: { docs: any[] }) => {
+            this.quotes.set(qs.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as StoredQuote));
+          },
+          (e: unknown) => console.error('[firebase] quotes subscription failed', e)
+        );
+      });
     } catch (e) {
       console.error('[firebase] init failed, falling back to local snapshot', e);
     }

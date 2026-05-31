@@ -41,16 +41,24 @@ import { ToastService } from './toast.service';
       <!-- Access -->
       <section class="adm-card">
         <div class="adm-card__head"><h2>Пароль доступа</h2></div>
-        <p class="adm-warn" *ngIf="auth.isDefault()">⚠ Используется пароль по умолчанию — смените его.</p>
-        <label class="adm-field"><span>Текущий пароль</span>
-          <input type="password" [(ngModel)]="pwCur" name="pwc" autocomplete="current-password" /></label>
-        <div class="adm-grid2">
-          <label class="adm-field"><span>Новый пароль</span>
-            <input type="password" [(ngModel)]="pwNew" name="pwn" autocomplete="new-password" /></label>
-          <label class="adm-field"><span>Повтор</span>
-            <input type="password" [(ngModel)]="pwNew2" name="pwn2" autocomplete="new-password" /></label>
-        </div>
-        <button class="adm-btn adm-btn--accent" (click)="changePw()">Сменить пароль</button>
+        <ng-container *ngIf="!auth.usesFirebase(); else firebaseAccess">
+          <p class="adm-warn" *ngIf="auth.isDefault()">⚠ Используется пароль по умолчанию — смените его.</p>
+          <label class="adm-field"><span>Текущий пароль</span>
+            <input type="password" [(ngModel)]="pwCur" name="pwc" autocomplete="current-password" /></label>
+          <div class="adm-grid2">
+            <label class="adm-field"><span>Новый пароль</span>
+              <input type="password" [(ngModel)]="pwNew" name="pwn" autocomplete="new-password" /></label>
+            <label class="adm-field"><span>Повтор</span>
+              <input type="password" [(ngModel)]="pwNew2" name="pwn2" autocomplete="new-password" /></label>
+          </div>
+          <button class="adm-btn adm-btn--accent" (click)="changePw()">Сменить пароль</button>
+        </ng-container>
+        <ng-template #firebaseAccess>
+          <p class="adm-note">
+            Доступ управляется через Firebase Authentication. Пароль меняется в Firebase Console
+            или через письмо восстановления для выбранного email админа.
+          </p>
+        </ng-template>
       </section>
     </div>
 

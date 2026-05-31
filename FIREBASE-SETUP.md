@@ -39,12 +39,12 @@
 ## Безопасность админки
 
 Правила выше требуют Firebase Auth для записи в каталог и чтения заявок.
+Админка уже умеет входить через Firebase Auth, когда заполнен `firebase.config.ts`.
 Чтобы это заработало по-настоящему:
 
 1. Firebase → **Authentication → Sign-in method → Email/Password → Enable**.
 2. **Users → Add user** — создайте один аккаунт админа.
-3. Перевести `admin-auth.service.ts` на `signInWithEmailAndPassword`
-   (сейчас там демо-пароль `fob-admin`). Скажите — переключу за пару минут.
+3. Заходите в `/admin` с email и паролем этого Firebase-пользователя.
 
 До этого для теста можно временно поставить «QUICK DEMO» правила из низа
 `firestore.rules` (открытый доступ), но не оставлять их на проде.

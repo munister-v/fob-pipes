@@ -19,13 +19,22 @@ import { ToastService } from './toast.service';
           <img src="assets/img/logo-fob.png" alt="Ф.О.Б" />
           <span>Панель управления</span>
         </div>
-        <label class="adm-field">
-          <span>Пароль</span>
-          <input type="password" [(ngModel)]="pw" name="pw" placeholder="Введите пароль"
-                 autocomplete="current-password" autofocus />
+        <label class="adm-field" *ngIf="auth.usesFirebase()">
+          <span>Email админа</span>
+          <input type="email" [(ngModel)]="email" name="email"
+                 placeholder="admin@example.com" autocomplete="username" autofocus />
         </label>
-        <p class="adm-login__err" *ngIf="error()">Неверный пароль</p>
-        <button class="adm-btn adm-btn--accent" type="submit">Войти</button>
+        <label class="adm-field">
+          <span>{{ auth.usesFirebase() ? 'Пароль Firebase' : 'Пароль' }}</span>
+          <input type="password" [(ngModel)]="pw" name="pw" placeholder="Введите пароль"
+                 autocomplete="current-password" [attr.autofocus]="auth.usesFirebase() ? null : ''" />
+        </label>
+        <p class="adm-login__err" *ngIf="error()">
+          {{ auth.usesFirebase() ? 'Неверный email или пароль' : 'Неверный пароль' }}
+        </p>
+        <button class="adm-btn adm-btn--accent" type="submit" [disabled]="busy()">
+          {{ busy() ? 'Входим…' : 'Войти' }}
+        </button>
         <p class="adm-login__hint" *ngIf="auth.isDefault()">Демо-доступ: <code>fob-admin</code></p>
       </form>
     </div>
@@ -88,7 +97,9 @@ export class AdminShellComponent {
   readonly toast = inject(ToastService);
 
   pw = '';
+  email = '';
   readonly error = signal(false);
+  readonly busy = signal(false);
   readonly menu = signal(false);
 
   readonly newCount = computed(() => this.store.quotes().filter((q) => q.status === 'new').length);
@@ -97,12 +108,14 @@ export class AdminShellComponent {
     this.menu.update((v) => !v);
   }
 
-  submit(): void {
-    if (this.auth.login(this.pw)) {
+  async submit(): Promise<void> {
+    this.busy.set(true);
+    if (await this.auth.login(this.pw, this.email)) {
       this.error.set(false);
       this.pw = '';
     } else {
       this.error.set(true);
     }
+    this.busy.set(false);
   }
 }
