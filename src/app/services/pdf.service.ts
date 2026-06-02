@@ -28,7 +28,12 @@ export class PdfService {
     // jspdf-autotable должен патчить прототип после загрузки jsPDF → sequential
     const jspdfMod = await import('jspdf');
     const jsPDF: any = (jspdfMod as any).jsPDF ?? jspdfMod.default;
-    await import('jspdf-autotable');
+    // jspdf-autotable@5 only auto-patches jsPDF.API.autoTable when `jsPDF`
+    // is found on `window`. With a bundled lazy import that never happens,
+    // so doc.autoTable is undefined → PDF generation throws. Apply manually.
+    const autoTableMod: any = await import('jspdf-autotable');
+    const applyPlugin = autoTableMod.applyPlugin ?? autoTableMod.default?.applyPlugin;
+    if (applyPlugin && !jsPDF.API.autoTable) applyPlugin(jsPDF);
 
     const doc = new jsPDF({
       orientation: opts.orientation ?? 'portrait',
