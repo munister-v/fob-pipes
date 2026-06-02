@@ -5,6 +5,8 @@ import { DataStore, QuoteStatus, StoredQuote } from '../services/data-store.serv
 import { ToastService } from './toast.service';
 import { PdfService } from '../services/pdf.service';
 import { ExcelService } from '../services/excel.service';
+import { OneCService } from '../services/onec.service';
+import { normalizePhone } from '../models/crm.model';
 
 const DAY_MS = 86_400_000;
 
@@ -27,6 +29,7 @@ const DAY_MS = 86_400_000;
                [ngModel]="search()" (ngModelChange)="search.set($event)" />
         <button class="adm-btn" (click)="exportExcel()" [disabled]="store.quotes().length === 0" title="Скачать Excel">↓ Excel</button>
         <button class="adm-btn" (click)="exportPdfReport()" [disabled]="store.quotes().length === 0" title="Отчёт PDF">↓ PDF отчёт</button>
+        <button class="adm-btn adm-btn--1c" (click)="exportOrdersXml()" [disabled]="filtered().length === 0" title="Выгрузить показанные заявки в 1С (CommerceML 2.08)">↓ 1С заказы XML</button>
         <button class="adm-btn" (click)="exportCsv()" [disabled]="store.quotes().length === 0">↓ CSV</button>
         <button class="adm-btn" (click)="exportJson()" [disabled]="store.quotes().length === 0">↓ JSON</button>
       </div>
@@ -75,6 +78,7 @@ const DAY_MS = 86_400_000;
         <button class="adm-chip" (click)="bulkSetStatus('new')">Новые</button>
         <button class="adm-chip" (click)="bulkSetStatus('in_progress')">В работе</button>
         <button class="adm-chip" (click)="bulkSetStatus('done')">Закрытые</button>
+        <button class="adm-btn adm-btn--sm adm-btn--1c" (click)="downloadActSverki()" title="Акт сверки по выбранным заявкам">↓ Акт сверки</button>
         <button class="adm-btn adm-btn--sm adm-btn--danger" (click)="bulkDelete()">Удалить</button>
         <button class="adm-btn adm-btn--sm" (click)="clearSelection()">Отмена</button>
       </div>
@@ -167,8 +171,10 @@ const DAY_MS = 86_400_000;
               <button class="adm-chip" [class.is-active]="q.status === 'done'" (click)="setStatus(q, 'done')">Закрыта</button>
             </div>
             <div class="adm-quote__foot-actions">
-              <button class="adm-btn adm-btn--sm" (click)="downloadKP(q)" title="Коммерческое предложение PDF">↓ КП (PDF)</button>
-              <button class="adm-btn adm-btn--sm" (click)="downloadInvoice(q)" title="Счёт на оплату PDF">↓ Счёт (PDF)</button>
+              <button class="adm-btn adm-btn--sm" (click)="downloadKP(q)" title="Коммерческое предложение PDF">↓ КП</button>
+              <button class="adm-btn adm-btn--sm" (click)="downloadInvoice(q)" title="Счёт на оплату PDF">↓ Счёт</button>
+              <button class="adm-btn adm-btn--sm adm-btn--1c" (click)="downloadTorg12(q)" title="Товарная накладная ТОРГ-12">↓ ТОРГ-12</button>
+              <button class="adm-btn adm-btn--sm adm-btn--1c" (click)="downloadUpd(q)" title="Универсальный передаточный документ">↓ УПД</button>
               <button class="adm-icon adm-icon--del" (click)="remove(q)" title="Удалить заявку">✕ Удалить</button>
             </div>
           </div>
@@ -180,8 +186,9 @@ const DAY_MS = 86_400_000;
 export class QuotesAdminComponent {
   readonly store = inject(DataStore);
   private readonly toast = inject(ToastService);
-  private readonly pdf = inject(PdfService);
+  private readonly pdf   = inject(PdfService);
   private readonly excel = inject(ExcelService);
+  private readonly onec  = inject(OneCService);
 
   readonly filter = signal<'all' | QuoteStatus>('all');
   readonly search = signal('');
@@ -361,6 +368,64 @@ export class QuotesAdminComponent {
     } catch (e) {
       console.error('[pdf] report', e);
       this.toast.err('Ошибка генерации PDF: ' + String(e));
+    }
+  }
+
+  async downloadTorg12(q: StoredQuote): Promise<void> {
+    this.toast.ok('Подготовка ТОРГ-12…');
+    try {
+      await this.pdf.torg12(q, this.store.content());
+      this.toast.ok('ТОРГ-12 скачан');
+    } catch (e) {
+      console.error('[pdf] torg12', e);
+      this.toast.err('Ошибка ТОРГ-12: ' + String(e));
+    }
+  }
+
+  async downloadUpd(q: StoredQuote): Promise<void> {
+    this.toast.ok('Подготовка УПД…');
+    try {
+      await this.pdf.upd(q, this.store.content());
+      this.toast.ok('УПД скачан');
+    } catch (e) {
+      console.error('[pdf] upd', e);
+      this.toast.err('Ошибка УПД: ' + String(e));
+    }
+  }
+
+  async downloadActSverki(): Promise<void> {
+    const ids = [...this.selected()];
+    const quotes = this.store.quotes().filter((q) => ids.includes(q.id));
+    if (!quotes.length) { this.toast.err('Выберите заявки для акта сверки'); return; }
+
+    // Определяем клиента: берём имя/телефон из первой заявки, группируем по телефону
+    const phone = quotes[0].phone || '';
+    const norm  = normalizePhone(phone);
+    const clientQuotes = norm
+      ? this.store.quotes().filter((q) => normalizePhone(q.phone || '') === norm)
+      : quotes;
+    const clientName  = quotes[0].name || phone || 'Покупатель';
+
+    const from = new Date(Math.min(...clientQuotes.map((q) => q.createdAt))).toLocaleDateString('ru-RU');
+    const to   = new Date(Math.max(...clientQuotes.map((q) => q.createdAt))).toLocaleDateString('ru-RU');
+    const period = from === to ? from : `${from} — ${to}`;
+
+    this.toast.ok('Подготовка акта сверки…');
+    try {
+      await this.pdf.actSverki(clientQuotes, clientName, phone, this.store.content(), period);
+      this.toast.ok('Акт сверки скачан');
+    } catch (e) {
+      console.error('[pdf] actSverki', e);
+      this.toast.err('Ошибка акта сверки: ' + String(e));
+    }
+  }
+
+  exportOrdersXml(): void {
+    try {
+      this.onec.exportOrders(this.filtered(), this.store.content());
+      this.toast.ok(`${this.filtered().length} заявок → orders.xml`);
+    } catch (e) {
+      this.toast.err('Ошибка XML: ' + String(e));
     }
   }
 

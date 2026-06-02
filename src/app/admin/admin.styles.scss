@@ -210,6 +210,11 @@
   &--danger { background: transparent; border-color: rgba(220,60,60,.45); color: #e66;
     &:hover { background: #d9342c; border-color: #d9342c; color: #fff; }
   }
+  /** Кнопки 1С-интеграции: синеватый акцент */
+  &--1c {
+    border-color: rgba(100,140,255,.4); color: #a0b8ff;
+    &:hover { background: rgba(100,140,255,.18); border-color: rgba(100,140,255,.7); color: #c8d8ff; }
+  }
 }
 
 /* ── KPI Stats ────────────────────────────────────────────────────── */

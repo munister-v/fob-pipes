@@ -464,6 +464,318 @@ export class PdfService {
       W / 2, 288, { align: 'center' });
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  //  ТОРГ-12 (товарная накладная)
+  // ─────────────────────────────────────────────────────────────────────
+  async torg12(q: StoredQuote, content: SiteContent): Promise<void> {
+    await this.loadFonts();
+    const doc = await this.makeDoc({});
+    const GREEN = [40, 184, 77] as [number, number, number];
+    const DARK  = [13, 16, 15]  as [number, number, number];
+    const GRAY  = [110, 120, 115] as [number, number, number];
+    const W = 210, PAD = 12;
+    const F = this.F;
+    const dateStr = new Date(q.createdAt).toLocaleDateString('ru-RU');
+
+    // Шапка-полоса
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, W, 18, 'F');
+    doc.setFont(F, 'bold'); doc.setFontSize(12); doc.setTextColor(255, 255, 255);
+    doc.text('ТОВАРНАЯ НАКЛАДНАЯ  ТОРГ-12', PAD, 12);
+    doc.setFont(F, 'normal'); doc.setFontSize(8);
+    doc.text(`№ ${q.id}  от ${dateStr}`, W - PAD, 12, { align: 'right' });
+
+    let y = 26;
+    const kv = (label: string, val: string, w1 = 38) => {
+      doc.setFont(F, 'bold'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+      doc.text(label, PAD, y);
+      doc.setFont(F, 'normal'); doc.setTextColor(...DARK);
+      const lines = doc.splitTextToSize(val, W - PAD * 2 - w1) as string[];
+      doc.text(lines, PAD + w1, y);
+      y += lines.length * 5.5;
+    };
+
+    kv('Грузоотправитель:', content.companyLegal || 'ООО «Ф.О.Б»');
+    kv('ИНН/КПП:', [content.inn, content.kpp].filter(Boolean).join(' / ') || '—');
+    kv('Адрес:', content.address);
+
+    y += 2;
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2); doc.line(PAD, y, W - PAD, y); y += 4;
+
+    kv('Грузополучатель:', q.name || '—');
+    kv('Телефон:', q.phone || '—');
+    if (q.city) kv('Адрес доставки:', q.city);
+    kv('Основание:', `Заявка № ${q.id} от ${dateStr}`);
+
+    y += 3;
+
+    // Таблица позиций
+    const hasPrice = q.lines.some((l) => (l.product.priceRetail ?? 0) > 0);
+    let total = 0; let totalVat = 0;
+    const body = q.lines.map((l, i) => {
+      const price = l.product.priceRetail ?? 0;
+      const sum   = price * l.qty;
+      const vat   = sum * 0.2;
+      total    += sum;
+      totalVat += vat;
+      return [
+        String(i + 1),
+        l.product.title,
+        l.product.unit ?? 'шт',
+        String(l.qty),
+        hasPrice && price > 0 ? this.fmt(price) : '—',
+        hasPrice && sum > 0   ? this.fmt(sum)   : '—',
+        hasPrice && sum > 0   ? '20%'           : '—',
+        hasPrice && vat > 0   ? this.fmt(vat)   : '—',
+        hasPrice && sum > 0   ? this.fmt(sum + vat) : '—',
+      ];
+    });
+
+    (doc as any).autoTable({
+      head: [['№', 'Наименование товара', 'Ед.', 'Кол-во', 'Цена', 'Сумма без НДС', 'НДС', 'Сумма НДС', 'Итого с НДС']],
+      body, startY: y,
+      margin: { left: PAD, right: PAD },
+      styles: { font: F, fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], font: F, fontStyle: 'bold', fontSize: 7.5 },
+      alternateRowStyles: { fillColor: [245, 248, 246] },
+      columnStyles: {
+        0: { cellWidth: 8 }, 2: { cellWidth: 12 }, 3: { cellWidth: 14, halign: 'center' },
+        4: { cellWidth: 20, halign: 'right' }, 5: { cellWidth: 26, halign: 'right' },
+        6: { cellWidth: 14, halign: 'center' }, 7: { cellWidth: 22, halign: 'right' }, 8: { cellWidth: 26, halign: 'right' },
+      },
+    });
+
+    const fy: number = (doc as any).lastAutoTable.finalY + 5;
+
+    if (hasPrice) {
+      doc.setFont(F, 'normal'); doc.setFontSize(9); doc.setTextColor(...DARK);
+      const totals = [
+        ['Итого без НДС:', this.fmt(total)],
+        ['НДС (20%):', this.fmt(totalVat)],
+        ['Итого с НДС:', this.fmt(total + totalVat)],
+      ];
+      totals.forEach(([l, v], i) => {
+        const isLast = i === totals.length - 1;
+        if (isLast) { doc.setFont(F, 'bold'); doc.setFillColor(...GREEN); doc.rect(PAD, fy + i * 7 - 3, W - PAD * 2, 9, 'F'); doc.setTextColor(255, 255, 255); }
+        else { doc.setFont(F, 'normal'); doc.setTextColor(...GRAY); }
+        doc.text(l, W - PAD - 50, fy + i * 7 + 2, { align: 'right' });
+        doc.text(v + ' руб.', W - PAD, fy + i * 7 + 2, { align: 'right' });
+      });
+    }
+
+    const sigY = Math.min(fy + (hasPrice ? 30 : 8), 265);
+    doc.setFont(F, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+    const sigLine = (label: string, x: number, sy: number) => {
+      doc.text(label, x, sy);
+      doc.setDrawColor(...GRAY); doc.setLineWidth(0.3); doc.line(x + 30, sy, x + 80, sy);
+    };
+    sigLine('Грузоотправитель:', PAD, sigY);
+    sigLine('Грузополучатель:', PAD, sigY + 12);
+
+    this.footer(doc, content, F);
+    this.savePdf(doc, `ТОРГ12-${q.id}-${dateStr.replace(/\./g, '-')}.pdf`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  УПД (универсальный передаточный документ)
+  // ─────────────────────────────────────────────────────────────────────
+  async upd(q: StoredQuote, content: SiteContent): Promise<void> {
+    await this.loadFonts();
+    const doc = await this.makeDoc({});
+    const GREEN = [40, 184, 77] as [number, number, number];
+    const DARK  = [13, 16, 15]  as [number, number, number];
+    const GRAY  = [110, 120, 115] as [number, number, number];
+    const W = 210, PAD = 12;
+    const F = this.F;
+    const dateStr = new Date(q.createdAt).toLocaleDateString('ru-RU');
+
+    // Шапка
+    doc.setFillColor(...GREEN); doc.rect(0, 0, W, 22, 'F');
+    doc.setFont(F, 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
+    doc.text('УНИВЕРСАЛЬНЫЙ ПЕРЕДАТОЧНЫЙ ДОКУМЕНТ (УПД)', PAD, 9);
+    doc.setFont(F, 'normal'); doc.setFontSize(8);
+    doc.text('Счёт-фактура + Передаточный документ (Функция СЧФ+ДОП)', PAD, 15);
+    doc.text(`№ ${q.id}  от ${dateStr}`, W - PAD, 15, { align: 'right' });
+
+    let y = 30;
+    const row2 = (l1: string, v1: string, l2: string, v2: string) => {
+      doc.setFont(F, 'bold'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+      doc.text(l1, PAD, y); doc.text(l2, PAD + 95, y);
+      doc.setFont(F, 'normal'); doc.setTextColor(...DARK);
+      doc.text(v1, PAD + 30, y); doc.text(v2, PAD + 125, y);
+      y += 6;
+    };
+
+    row2('Продавец:', content.companyLegal || 'ООО «Ф.О.Б»', 'Покупатель:', q.name || '—');
+    row2('ИНН/КПП:', [content.inn, content.kpp].filter(Boolean).join('/') || '—', 'Телефон:', q.phone || '—');
+    row2('Адрес:', content.address, 'Адрес:', q.city || '—');
+    if (content.bankAccount) row2('Р/С:', content.bankAccount, 'Основание:', `Заявка ${q.id}`);
+    if (content.bankName) row2('Банк:', content.bankName, 'БИК:', content.bankBic || '—');
+
+    y += 2;
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2); doc.line(PAD, y, W - PAD, y); y += 4;
+
+    const hasPrice = q.lines.some((l) => (l.product.priceRetail ?? 0) > 0);
+    let total = 0, vat20 = 0;
+    const body = q.lines.map((l, i) => {
+      const price = l.product.priceRetail ?? 0;
+      const sum   = price * l.qty;
+      const vatAmt = sum * 0.2;
+      total  += sum;
+      vat20  += vatAmt;
+      return [
+        String(i + 1),
+        l.product.title,
+        l.product.sku,
+        String(l.qty),
+        l.product.unit ?? 'шт',
+        hasPrice && price > 0 ? this.fmt(price) : '—',
+        hasPrice && sum > 0   ? this.fmt(sum)   : '—',
+        '20%',
+        hasPrice && vatAmt > 0 ? this.fmt(vatAmt) : '—',
+        hasPrice && sum > 0    ? this.fmt(sum + vatAmt) : '—',
+      ];
+    });
+
+    (doc as any).autoTable({
+      head: [['№', 'Наименование', 'Артикул', 'Кол-во', 'Ед.', 'Цена', 'Стоимость без НДС', 'Ставка НДС', 'Сумма НДС', 'Стоимость с НДС']],
+      body, startY: y,
+      margin: { left: PAD, right: PAD },
+      styles: { font: F, fontSize: 7.5, cellPadding: 2.3, textColor: DARK },
+      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], font: F, fontStyle: 'bold', fontSize: 7 },
+      alternateRowStyles: { fillColor: [245, 248, 246] },
+      columnStyles: {
+        0: { cellWidth: 7 }, 2: { cellWidth: 18, font: 'courier', fontSize: 7 }, 3: { cellWidth: 12, halign: 'center' },
+        4: { cellWidth: 10 }, 5: { cellWidth: 18, halign: 'right' }, 6: { cellWidth: 22, halign: 'right' },
+        7: { cellWidth: 16, halign: 'center' }, 8: { cellWidth: 20, halign: 'right' }, 9: { cellWidth: 22, halign: 'right' },
+      },
+    });
+
+    const fy: number = (doc as any).lastAutoTable.finalY + 4;
+    if (hasPrice) {
+      const lines = [
+        [`Итого без НДС: ${this.fmt(total)} руб.`],
+        [`В т.ч. НДС (20%): ${this.fmt(vat20)} руб.`],
+        [`ИТОГО с НДС: ${this.fmt(total + vat20)} руб.`],
+      ];
+      doc.setFont(F, 'normal'); doc.setFontSize(9); doc.setTextColor(...DARK);
+      lines.forEach(([t], i) => {
+        if (i === 2) { doc.setFont(F, 'bold'); doc.setFillColor(...GREEN); doc.rect(PAD, fy + i * 7 - 3, W - PAD * 2, 9, 'F'); doc.setTextColor(255, 255, 255); }
+        doc.text(t, W - PAD, fy + i * 7 + 2, { align: 'right' });
+      });
+    }
+
+    // Подписи
+    const sigY = Math.min(fy + (hasPrice ? 28 : 8), 260);
+    doc.setFont(F, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+    const sigLine = (label: string, x: number, sy: number, w = 60) => {
+      doc.text(label, x, sy);
+      doc.setDrawColor(...GRAY); doc.setLineWidth(0.3); doc.line(x + 28, sy, x + 28 + w, sy);
+    };
+    sigLine('Руководитель:', PAD, sigY);
+    sigLine('Главный бухгалтер:', PAD + 95, sigY);
+    sigLine('Товар принял:', PAD, sigY + 12);
+    sigLine('Дата:', PAD + 95, sigY + 12, 40);
+
+    this.footer(doc, content, F);
+    this.savePdf(doc, `УПД-${q.id}-${dateStr.replace(/\./g, '-')}.pdf`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  Акт сверки взаиморасчётов
+  // ─────────────────────────────────────────────────────────────────────
+  async actSverki(
+    quotes: StoredQuote[],
+    clientName: string,
+    clientPhone: string,
+    content: SiteContent,
+    period: string,
+  ): Promise<void> {
+    await this.loadFonts();
+    const doc = await this.makeDoc({});
+    const GREEN = [40, 184, 77] as [number, number, number];
+    const DARK  = [13, 16, 15]  as [number, number, number];
+    const GRAY  = [110, 120, 115] as [number, number, number];
+    const W = 210, PAD = 14;
+    const F = this.F;
+
+    // Шапка
+    doc.setFillColor(...GREEN); doc.rect(0, 0, W, 24, 'F');
+    doc.setFont(F, 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+    doc.text('АКТ СВЕРКИ ВЗАИМОРАСЧЁТОВ', PAD, 11);
+    doc.setFont(F, 'normal'); doc.setFontSize(8.5);
+    doc.text(`за период: ${period}`, PAD, 19);
+    doc.text(new Date().toLocaleDateString('ru-RU'), W - PAD, 19, { align: 'right' });
+
+    let y = 32;
+    doc.setFont(F, 'bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+    doc.text('Организация:', PAD, y);
+    doc.text('Контрагент:', PAD + 100, y);
+    y += 6;
+    doc.setFont(F, 'normal');
+    doc.text(content.companyLegal || 'ООО «Ф.О.Б»', PAD, y);
+    doc.text(clientName || 'Покупатель', PAD + 100, y);
+    y += 5;
+    if (content.inn) { doc.setTextColor(...GRAY); doc.setFontSize(8); doc.text(`ИНН: ${content.inn}`, PAD, y); }
+    if (clientPhone)  { doc.text(`Тел.: ${clientPhone}`, PAD + 100, y); }
+    y += 10;
+
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.3); doc.line(PAD, y - 3, W - PAD, y - 3);
+
+    const sorted = [...quotes].sort((a, b) => a.createdAt - b.createdAt);
+    let saldo = 0;
+    let bodyRows: (string | object)[][] = [];
+
+    // Начальное сальдо
+    bodyRows.push([{ content: 'Сальдо на начало периода:', colSpan: 3, styles: { fontStyle: 'bold' } }, '0,00', '0,00', '0,00']);
+
+    for (const q of sorted) {
+      const sum = q.lines.reduce((s, l) => s + (l.product.priceRetail ?? 0) * l.qty, 0);
+      const date = new Date(q.createdAt).toLocaleDateString('ru-RU');
+      saldo += sum;
+      bodyRows.push([
+        date,
+        `Заявка № ${q.id}`,
+        q.comment || q.clientType || '',
+        sum > 0 ? this.fmt(sum) : '—',
+        '—',
+        sum > 0 ? this.fmt(saldo) : '—',
+      ]);
+    }
+
+    // Итоговая строка
+    const totalDebit = sorted.reduce((s, q) => s + q.lines.reduce((ls, l) => ls + (l.product.priceRetail ?? 0) * l.qty, 0), 0);
+    bodyRows.push([{ content: 'Обороты за период:', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [245, 248, 246] } }, { content: this.fmt(totalDebit), styles: { fontStyle: 'bold', fillColor: [245, 248, 246] } }, { content: '0,00', styles: { fillColor: [245, 248, 246] } }, { content: this.fmt(saldo), styles: { fontStyle: 'bold', fillColor: [245, 248, 246] } }]);
+    bodyRows.push([{ content: `Сальдо на конец периода: ${this.fmt(saldo)} руб. (задолженность покупателя)`, colSpan: 6, styles: { fontStyle: 'bold', fillColor: GREEN as [number, number, number], textColor: [255, 255, 255] } }]);
+
+    (doc as any).autoTable({
+      head: [['Дата', 'Документ', 'Примечание', 'Дебет (нам)', 'Кредит (от нас)', 'Сальдо']],
+      body: bodyRows,
+      startY: y + 2,
+      margin: { left: PAD, right: PAD },
+      styles: { font: F, fontSize: 8.5, cellPadding: 3, textColor: DARK },
+      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], font: F, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 251, 248] },
+      columnStyles: { 0: { cellWidth: 20 }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' } },
+    });
+
+    const fy: number = (doc as any).lastAutoTable.finalY + 14;
+    doc.setFont(F, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+    const sig2 = (l: string, x: number) => {
+      doc.text(l, x, fy);
+      doc.setDrawColor(...GRAY); doc.setLineWidth(0.3); doc.line(x + 26, fy, x + 76, fy);
+    };
+    sig2('От организации:', PAD);
+    sig2('От контрагента:', PAD + 95);
+    doc.setFont(F, 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+    doc.text('подпись, расшифровка', PAD + 26, fy + 5);
+    doc.text('подпись, расшифровка', PAD + 95 + 26, fy + 5);
+
+    this.footer(doc, content, F);
+    const date = new Date().toISOString().slice(0, 10);
+    this.savePdf(doc, `АктСверки-${clientName.replace(/\s+/g, '_')}-${date}.pdf`);
+  }
+
   private fmt(n: number): string {
     return n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CategoryDef, Product } from '../models/product.model';
-import { SiteContent } from './data-store.service';
+import { SiteContent, StoredQuote } from './data-store.service';
 
 /**
  * Выгрузка каталога в формате CommerceML 2.08 для 1С (Предприятие 8 / Сайт).
@@ -209,5 +209,95 @@ export class OneCService {
     a.download = name;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  Выгрузка заказов покупателей (CommerceML 2.08 → orders.xml)
+  //  Импортируется в 1С:Торговля/УТ/Розница через обмен с сайтом.
+  // ─────────────────────────────────────────────────────────────────────
+
+  /** Скачать orders.xml для выбранных заявок. */
+  exportOrders(quotes: StoredQuote[], content: SiteContent): void {
+    this.download('orders.xml', this.buildOrders(quotes, content));
+  }
+
+  buildOrders(quotes: StoredQuote[], content: SiteContent): string {
+    const date = this.now();
+    const docs = quotes.map((q) => this.orderDoc(q)).join('\n');
+    return (
+      `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<КоммерческаяИнформация ВерсияСхемы="2.08" ДатаФормирования="${date}">\n` +
+      docs +
+      `</КоммерческаяИнформация>\n`
+    );
+  }
+
+  private orderDoc(q: StoredQuote): string {
+    const date = new Date(q.createdAt).toISOString().slice(0, 10);
+    const clientTypeMap: Record<string, string> = {
+      private: 'Частное лицо', shop: 'Магазин',
+      construction: 'Строительный объект', other: 'Другое',
+    };
+    const total = q.lines.reduce((s, l) => s + (l.product.priceRetail ?? 0) * l.qty, 0);
+
+    const goods = q.lines.map((l, i) => {
+      const price = l.product.priceRetail ?? 0;
+      const sum   = price * l.qty;
+      const unit  = this.OKEI[l.product.unit ?? 'шт'] ?? this.OKEI['шт'];
+      return (
+        `    <Товар>\n` +
+        `      <Ид>${this.esc(this.guidFromString(l.product.sku))}</Ид>\n` +
+        `      <Артикул>${this.esc(l.product.sku)}</Артикул>\n` +
+        `      <Наименование>${this.esc(l.product.title)}</Наименование>\n` +
+        `      <БазоваяЕдиница Код="${unit.code}" НаименованиеПолное="${unit.name}">${this.esc(l.product.unit ?? 'шт')}</БазоваяЕдиница>\n` +
+        `      <Количество>${l.qty}</Количество>\n` +
+        `      <ЦенаЗаЕдиницу>${price}</ЦенаЗаЕдиницу>\n` +
+        `      <Сумма>${sum}</Сумма>\n` +
+        `      <НомерСтроки>${i + 1}</НомерСтроки>\n` +
+        `    </Товар>`
+      );
+    }).join('\n');
+
+    const reqs: string[] = [];
+    if (q.city)    reqs.push(this.reqVal('Город', q.city));
+    if (q.comment) reqs.push(this.reqVal('Комментарий', q.comment));
+    reqs.push(this.reqVal('ТипКлиента', clientTypeMap[q.clientType] ?? q.clientType));
+    reqs.push(this.reqVal('СтатусЗаявки', q.status === 'new' ? 'Новая' : q.status === 'in_progress' ? 'В работе' : 'Закрыта'));
+
+    const phone = (q.phone || '').replace(/\D/g, '');
+    return (
+      `  <Документ>\n` +
+      `    <Ид>${this.esc(q.id)}</Ид>\n` +
+      `    <Номер>${this.esc(q.id)}</Номер>\n` +
+      `    <Дата>${date}</Дата>\n` +
+      `    <ХозОперация>Заказ товара</ХозОперация>\n` +
+      `    <Роль>Покупатель</Роль>\n` +
+      `    <Валюта>RUB</Валюта>\n` +
+      `    <Курс>1</Курс>\n` +
+      `    <Сумма>${total}</Сумма>\n` +
+      `    <Контрагенты>\n` +
+      `      <Контрагент>\n` +
+      `        <Ид>${this.esc(phone || q.id)}</Ид>\n` +
+      `        <Наименование>${this.esc(q.name || 'Без имени')}</Наименование>\n` +
+      `        <Роль>Покупатель</Роль>\n` +
+      (q.city ? `        <АдресДоставки><Представление>${this.esc(q.city)}</Представление></АдресДоставки>\n` : '') +
+      `        <Контакты>\n` +
+      `          <Контакт><Тип>Телефон</Тип><Значение>${this.esc(q.phone || '')}</Значение></Контакт>\n` +
+      `        </Контакты>\n` +
+      `      </Контрагент>\n` +
+      `    </Контрагенты>\n` +
+      `    <Товары>\n${goods}\n    </Товары>\n` +
+      `    <ЗначенияРеквизитов>\n${reqs.join('\n')}\n    </ЗначенияРеквизитов>\n` +
+      `  </Документ>`
+    );
+  }
+
+  private reqVal(name: string, value: string): string {
+    return (
+      `      <ЗначениеРеквизита>\n` +
+      `        <Наименование>${this.esc(name)}</Наименование>\n` +
+      `        <Значение>${this.esc(value)}</Значение>\n` +
+      `      </ЗначениеРеквизита>`
+    );
   }
 }
