@@ -29,6 +29,22 @@ export interface SiteContent {
   heroCta?: string;
   companyLegal?: string;
   companyCode?: string;
+  /** Ссылка на Яндекс.Карты / Google Maps для страницы контактов */
+  mapUrl?: string;
+  /** ИНН */
+  inn?: string;
+  /** КПП */
+  kpp?: string;
+  /** Наименование банка */
+  bankName?: string;
+  /** БИК */
+  bankBic?: string;
+  /** Расчётный счёт */
+  bankAccount?: string;
+  /** Корреспондентский счёт */
+  bankCorr?: string;
+  /** Показывать цены в публичном каталоге (по умолчанию — нет) */
+  publicPrices?: boolean;
 }
 
 const DEFAULT_CONTENT: SiteContent = {

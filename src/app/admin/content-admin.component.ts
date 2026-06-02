@@ -6,7 +6,7 @@ import { DataStore, SiteContent } from '../services/data-store.service';
 import { CategoryDef } from '../models/product.model';
 import { ToastService } from './toast.service';
 
-type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
+type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'requisites' | 'help';
 
 @Component({
   selector: 'app-content-admin',
@@ -35,7 +35,8 @@ type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
       <button [class.is-active]="tab() === 'categories'" (click)="tab.set('categories')">
         Категории <i>{{ store.categories().length }}</i>
       </button>
-      <button [class.is-active]="tab() === 'company'"    (click)="tab.set('company')">Реквизиты</button>
+      <button [class.is-active]="tab() === 'company'"     (click)="tab.set('company')">Компания</button>
+      <button [class.is-active]="tab() === 'requisites'" (click)="tab.set('requisites')">Банк / ИНН</button>
       <button [class.is-active]="tab() === 'help'"       (click)="tab.set('help')">Справка</button>
     </div>
 
@@ -61,6 +62,19 @@ type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
           <input [(ngModel)]="c.heroCta" (ngModelChange)="touch()"
                  placeholder="Каталог продукции" />
         </label>
+        <div class="adm-toggle-row">
+          <label class="adm-toggle">
+            <input type="checkbox" [ngModel]="c.publicPrices" (ngModelChange)="c.publicPrices = $event; touch()" />
+            <span class="adm-toggle__track"></span>
+          </label>
+          <div>
+            <span class="adm-toggle__label">Показывать розничные цены в публичном каталоге</span>
+            <p class="adm-toggle__hint">
+              Если выключено — цены видны только в админке и в PDF. Включите, если хотите
+              чтобы посетители сайта видели ориентировочные цены на карточках товаров.
+            </p>
+          </div>
+        </div>
         <p class="adm-note">
           Изменения применятся к главной странице после нажатия «Сохранить».
           Изображение героя (фон) меняется в файлах <code>src/assets/img/hero-pipes.jpg</code> через коммит в репозиторий —
@@ -117,6 +131,14 @@ type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
             <input [(ngModel)]="c.hours" (ngModelChange)="touch()"
                    placeholder="Пн–Пт · 08:00–17:00" />
           </label>
+          <label class="adm-field">
+            <span>Ссылка на карту (Яндекс.Карты / Google Maps)</span>
+            <input [(ngModel)]="c.mapUrl" (ngModelChange)="touch()"
+                   placeholder="https://yandex.ru/maps/-/…" class="adm-mono" />
+          </label>
+          <div class="adm-field-hint" *ngIf="c.mapUrl">
+            <a [href]="c.mapUrl" target="_blank" rel="noopener" class="adm-link">↗ Проверить ссылку</a>
+          </div>
         </section>
 
         <section class="adm-card">
@@ -190,28 +212,116 @@ type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
       </section>
     </ng-container>
 
-    <!-- ═══════════════ COMPANY (реквизиты) ═══════════════ -->
+    <!-- ═══════════════ COMPANY ═══════════════ -->
     <ng-container *ngIf="tab() === 'company'">
+      <div class="adm-grid-cols">
+        <section class="adm-card">
+          <div class="adm-card__head"><h2>Юридические данные</h2></div>
+          <label class="adm-field">
+            <span>Юридическое название</span>
+            <input [(ngModel)]="c.companyLegal" (ngModelChange)="touch()"
+                   placeholder="Общество с ограниченной ответственностью «Ф.О.Б»" />
+          </label>
+          <label class="adm-field">
+            <span>ОГРН / ЕДРПОУ / Регистрационный код</span>
+            <input [(ngModel)]="c.companyCode" (ngModelChange)="touch()"
+                   placeholder="000000000000" class="adm-mono" />
+          </label>
+          <div class="adm-grid2">
+            <label class="adm-field">
+              <span>ИНН</span>
+              <input [(ngModel)]="c.inn" (ngModelChange)="touch()"
+                     placeholder="0000000000" class="adm-mono" />
+            </label>
+            <label class="adm-field">
+              <span>КПП</span>
+              <input [(ngModel)]="c.kpp" (ngModelChange)="touch()"
+                     placeholder="000000000" class="adm-mono" />
+            </label>
+          </div>
+          <p class="adm-note">
+            Подставляются в шапку PDF-документов (КП, счёт, спецификация) и в 1С-выгрузку.
+          </p>
+        </section>
+
+        <section class="adm-card">
+          <div class="adm-card__head"><h2>Превью реквизитов</h2></div>
+          <div class="adm-preview">
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">Компания</span>
+              <span class="adm-preview__val">{{ c.companyLegal || '—' }}</span>
+            </div>
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">ОГРН</span>
+              <span class="adm-preview__val adm-mono">{{ c.companyCode || '—' }}</span>
+            </div>
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">ИНН</span>
+              <span class="adm-preview__val adm-mono">{{ c.inn || '—' }}</span>
+            </div>
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">КПП</span>
+              <span class="adm-preview__val adm-mono">{{ c.kpp || '—' }}</span>
+            </div>
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">Банк</span>
+              <span class="adm-preview__val">{{ c.bankName || '—' }}</span>
+            </div>
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">р/с</span>
+              <span class="adm-preview__val adm-mono">{{ c.bankAccount || '—' }}</span>
+            </div>
+            <div class="adm-preview__row">
+              <span class="adm-preview__lbl">БИК</span>
+              <span class="adm-preview__val adm-mono">{{ c.bankBic || '—' }}</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </ng-container>
+
+    <!-- ═══════════════ REQUISITES (банк) ═══════════════ -->
+    <ng-container *ngIf="tab() === 'requisites'">
       <section class="adm-card">
         <div class="adm-card__head">
-          <h2>Реквизиты компании</h2>
-          <span class="adm-sub">Используются в PDF (КП и счетах)</span>
+          <h2>Банковские реквизиты</h2>
+          <span class="adm-sub">Для счёта на оплату и договоров</span>
         </div>
         <label class="adm-field">
-          <span>Юридическое название</span>
-          <input [(ngModel)]="c.companyLegal" (ngModelChange)="touch()"
-                 placeholder="Общество с ограниченной ответственностью «Ф.О.Б»" />
+          <span>Наименование банка</span>
+          <input [(ngModel)]="c.bankName" (ngModelChange)="touch()"
+                 placeholder="ПАО Сбербанк / АО «Банк»" />
         </label>
+        <div class="adm-grid2">
+          <label class="adm-field">
+            <span>БИК</span>
+            <input [(ngModel)]="c.bankBic" (ngModelChange)="touch()"
+                   placeholder="044525225" class="adm-mono" />
+          </label>
+          <label class="adm-field">
+            <span>К/С (корреспондентский счёт)</span>
+            <input [(ngModel)]="c.bankCorr" (ngModelChange)="touch()"
+                   placeholder="30101810400000000225" class="adm-mono" />
+          </label>
+        </div>
         <label class="adm-field">
-          <span>ОГРН / ЕДРПОУ / Регистрационный код</span>
-          <input [(ngModel)]="c.companyCode" (ngModelChange)="touch()"
-                 placeholder="000000000000" class="adm-mono" />
+          <span>Р/С (расчётный счёт)</span>
+          <input [(ngModel)]="c.bankAccount" (ngModelChange)="touch()"
+                 placeholder="40702810000000000000" class="adm-mono" />
         </label>
         <p class="adm-note">
-          Реквизиты подставляются в шапку PDF-документов (счёт на оплату, коммерческое
-          предложение). Полные банковские реквизиты для счёта добавьте в основной текст
-          «О компании» если нужны на сайте.
+          Реквизиты подставляются в счёт на оплату (PDF), который формируется в разделе «Заявки».
+          До заполнения этих полей счёт будет печататься без банковских реквизитов.
         </p>
+      </section>
+
+      <!-- Полный блок реквизитов для копирования -->
+      <section class="adm-card" *ngIf="c.companyLegal && c.bankAccount">
+        <div class="adm-card__head">
+          <h2>Готовый блок реквизитов</h2>
+          <button class="adm-btn adm-btn--sm" (click)="copyRequisites()">Копировать</button>
+        </div>
+        <pre class="adm-req-block">{{ requisitesBlock() }}</pre>
       </section>
     </ng-container>
 
@@ -462,6 +572,29 @@ export class ContentAdminComponent {
     this.saved.set(true);
     this.toast.ok('Контент сохранён');
     setTimeout(() => this.saved.set(false), 2000);
+  }
+
+  requisitesBlock(): string {
+    const c = this.c;
+    const lines: string[] = [];
+    if (c.companyLegal) lines.push(c.companyLegal);
+    if (c.inn) lines.push(`ИНН: ${c.inn}` + (c.kpp ? `  КПП: ${c.kpp}` : ''));
+    if (c.companyCode) lines.push(`ОГРН: ${c.companyCode}`);
+    if (c.address) lines.push(`Адрес: ${c.address}`);
+    lines.push('');
+    if (c.bankName) lines.push(`Банк: ${c.bankName}`);
+    if (c.bankBic) lines.push(`БИК: ${c.bankBic}`);
+    if (c.bankCorr) lines.push(`К/С: ${c.bankCorr}`);
+    if (c.bankAccount) lines.push(`Р/С: ${c.bankAccount}`);
+    if (c.phone) lines.push(`Тел.: ${c.phone}`);
+    if (c.email) lines.push(`Email: ${c.email}`);
+    return lines.join('\n');
+  }
+
+  copyRequisites(): void {
+    navigator.clipboard.writeText(this.requisitesBlock()).then(() => {
+      this.toast.ok('Реквизиты скопированы');
+    });
   }
 
   patchCat(cat: CategoryDef, patch: Partial<CategoryDef>): void {
