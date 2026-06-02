@@ -2,33 +2,90 @@
   <div class="shell">
     <div class="head" appReveal>
       <div>
-        <div class="eyebrow"><span class="dot"></span><span class="num">08</span> Качество и награды</div>
+        <div class="eyebrow"><span class="dot"></span><span class="num">08</span> Качество и стандарты</div>
         <h2 class="section-title">Стандарты<br />и выставки</h2>
       </div>
       <p class="head__note">
-        Полные копии документов и паспорта на партию предоставляем по запросу
-        вместе с подтверждением заявки.
+        Продукция выпускается в соответствии с российскими ГОСТ и европейскими EN.
+        Паспорта партий — по запросу.
       </p>
     </div>
 
-    <!-- Сертификаты -->
-    <div class="grid">
-      <div class="cert" *ngFor="let c of certs; let i = index" appReveal [revealDelay]="i * 70">
-        <div class="cert__top">
-          <span class="cert__code">{{ c.code }}</span>
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-            <circle cx="13" cy="11" r="6" stroke="currentColor" stroke-width="1.4" />
-            <path d="M9 16 L7 24 L13 21 L19 24 L17 16" stroke="currentColor" stroke-width="1.4" />
-          </svg>
+    <!-- Переключатель РФ / EU -->
+    <div class="std-tabs" appReveal>
+      <button class="std-tab" [class.is-active]="tab() === 'ru'" (click)="tab.set('ru')">
+        Российские ГОСТ
+        <span class="std-tab__count">{{ count('ru') }}</span>
+      </button>
+      <button class="std-tab" [class.is-active]="tab() === 'eu'" (click)="tab.set('eu')">
+        Европейские EN / ISO
+        <span class="std-tab__count">{{ count('eu') }}</span>
+      </button>
+    </div>
+
+    <!-- Карточки стандартов -->
+    <div class="std-grid">
+      <div class="std-card" *ngFor="let s of filtered; let i = index" appReveal [revealDelay]="i * 60">
+        <div class="std-card__top">
+          <span class="std-card__code">{{ s.code }}</span>
+          <span class="std-card__flag-tag" [class.is-eu]="s.flag === 'eu'">
+            {{ s.flag === 'ru' ? 'ГОСТ' : 'EN' }}
+          </span>
         </div>
-        <h3 class="cert__title">{{ c.title }}</h3>
-        <p class="cert__note">{{ c.note }}</p>
+        <h3 class="std-card__name">{{ s.fullName }}</h3>
+        <p class="std-card__scope">{{ s.scope }}</p>
+        <ul class="std-card__params">
+          <li *ngFor="let p of s.params">{{ p }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Кольцевая жёсткость -->
+    <div class="sn-block" appReveal>
+      <div class="sn-block__head">
+        <div class="eyebrow"><span class="dot"></span> Кольцевая жёсткость наружных труб (SN)</div>
+        <p class="sn-block__note">
+          Чем выше SN — тем большую нагрузку выдерживает труба без деформации.
+          Определяется по EN ISO 9969 / ГОСТ 32415. Мы производим SN4 и SN8.
+        </p>
+      </div>
+      <div class="sn-table">
+        <div class="sn-row sn-row--head">
+          <span>Класс</span>
+          <span>Жёсткость</span>
+          <span>Применение</span>
+          <span>Глубина укладки</span>
+        </div>
+        <div class="sn-row">
+          <span class="sn-cls">SN2</span>
+          <span class="sn-val">2 кН/м²</span>
+          <span>Газоны, парки, пешеходные зоны</span>
+          <span class="sn-depth">до 2 м</span>
+        </div>
+        <div class="sn-row sn-row--hi">
+          <span class="sn-cls">SN4</span>
+          <span class="sn-val">4 кН/м²</span>
+          <span>Стандарт · большинство прокладок &nbsp;<b>✓ производим</b></span>
+          <span class="sn-depth">до 4 м</span>
+        </div>
+        <div class="sn-row sn-row--hi">
+          <span class="sn-cls">SN8</span>
+          <span class="sn-val">8 кН/м²</span>
+          <span>Под проезжей частью, тяжёлый транспорт &nbsp;<b>✓ производим</b></span>
+          <span class="sn-depth">до 6 м</span>
+        </div>
+        <div class="sn-row sn-row--muted">
+          <span class="sn-cls">SN16</span>
+          <span class="sn-val">16 кН/м²</span>
+          <span>Особые условия, промышленные объекты</span>
+          <span class="sn-depth">до 8 м</span>
+        </div>
       </div>
     </div>
 
     <!-- Дипломы Aqua-Therm -->
     <div class="awards-head" appReveal>
-      <div class="eyebrow"><span class="dot"></span> Дипломы участника выставки Aqua-Therm International, Киев</div>
+      <div class="eyebrow"><span class="dot"></span> Дипломы участника · Aqua-Therm International, Киев</div>
     </div>
     <div class="awards">
       <figure class="award" *ngFor="let a of awards; let i = index" appReveal [revealDelay]="i * 80">

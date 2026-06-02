@@ -1,6 +1,7 @@
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { CATEGORIES, PRODUCTS } from '../data/catalog.data';
 import { CategoryDef, Product, QuoteRequest } from '../models/product.model';
+import { Activity, Customer, Deal } from '../models/crm.model';
 import { FirebaseService } from './firebase.service';
 
 export type QuoteStatus = 'new' | 'in_progress' | 'done';
@@ -11,6 +12,8 @@ export interface StoredQuote extends QuoteRequest {
   status: QuoteStatus;
   /** internal manager note, not shown to the client */
   note?: string;
+  /** linked CRM customer */
+  customerId?: string;
 }
 
 export interface SiteContent {
@@ -21,6 +24,11 @@ export interface SiteContent {
   email: string;
   address: string;
   hours: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroCta?: string;
+  companyLegal?: string;
+  companyCode?: string;
 }
 
 const DEFAULT_CONTENT: SiteContent = {
@@ -40,6 +48,9 @@ interface Persisted {
   categories: CategoryDef[];
   quotes: StoredQuote[];
   content: SiteContent;
+  customers?: Customer[];
+  deals?: Deal[];
+  activities?: Activity[];
 }
 
 /**
@@ -200,6 +211,42 @@ export class DataStore {
   deleteProduct(sku: string): void {
     this.products.update((list) => list.filter((p) => p.sku !== sku));
     void this.writeDoc(['site', 'catalog'], { products: this.products() });
+  }
+
+  /** Set the physical stock for a SKU (warehouse). */
+  setStock(sku: string, stock: number): void {
+    const n = Math.max(0, Math.round(stock || 0));
+    this.products.update((list) =>
+      list.map((p) => (p.sku === sku ? { ...p, stock: n } : p))
+    );
+    void this.writeDoc(['site', 'catalog'], { products: this.products() });
+  }
+
+  // ═══════════════ warehouse / reservations ═══════════════
+  /**
+   * Reserved quantity per SKU — summed across ACTIVE quotes
+   * (status «new» / «in_progress»). A closed quote («done») releases its reserve.
+   * Fully reactive: recomputes whenever quotes change.
+   */
+  readonly reservations = computed<Map<string, number>>(() => {
+    const map = new Map<string, number>();
+    for (const q of this.quotes()) {
+      if (q.status === 'done') continue;
+      for (const l of q.lines) {
+        const sku = l.product?.sku;
+        if (!sku) continue;
+        map.set(sku, (map.get(sku) ?? 0) + (l.qty || 0));
+      }
+    }
+    return map;
+  });
+
+  reservedFor(sku: string): number {
+    return this.reservations().get(sku) ?? 0;
+  }
+
+  availableFor(p: Product): number {
+    return (p.stock ?? 0) - this.reservedFor(p.sku);
   }
 
   // ═══════════════ categories ═══════════════

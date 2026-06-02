@@ -5,6 +5,7 @@ import { DataStore } from '../services/data-store.service';
 import { Availability, PriceUnit, Product, ProductCategory, Usage } from '../models/product.model';
 import { ToastService } from './toast.service';
 import { ExcelService, ImportResult } from '../services/excel.service';
+import { PdfService } from '../services/pdf.service';
 
 type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
 
@@ -22,7 +23,8 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
       <div class="adm-head__actions">
         <input class="adm-search" type="text" placeholder="Поиск…"
                [ngModel]="search()" (ngModelChange)="search.set($event)" />
-        <button class="adm-btn" (click)="exportExcel()" title="Скачать Excel-прайс">↓ Excel</button>
+        <button class="adm-btn" (click)="exportPricePdf()" title="Скачать прайс-лист PDF (для отправки клиенту)">↓ Прайс PDF</button>
+        <button class="adm-btn" (click)="exportExcel()" title="Скачать Excel-прайс (для редактирования)">↓ Excel</button>
         <button class="adm-btn" (click)="exportCsv()">↓ CSV</button>
         <label class="adm-btn" title="Импорт из Excel (.xlsx) или JSON/CSV">
           ↑ Импорт
@@ -62,10 +64,31 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
         <button [class.is-active]="fCat() === 'all'" (click)="fCat.set('all')">Все категории</button>
         <button *ngFor="let c of store.categories()" [class.is-active]="fCat() === c.id" (click)="fCat.set(c.id)">{{ c.title }}</button>
       </div>
-      <div class="adm-tabs">
-        <button [class.is-active]="fUsage() === 'all'" (click)="fUsage.set('all')">Любое</button>
-        <button [class.is-active]="fUsage() === 'internal'" (click)="fUsage.set('internal')">Внутр.</button>
-        <button [class.is-active]="fUsage() === 'external'" (click)="fUsage.set('external')">Наруж.</button>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="adm-tabs">
+          <button [class.is-active]="fUsage() === 'all'" (click)="fUsage.set('all')">Любое</button>
+          <button [class.is-active]="fUsage() === 'internal'" (click)="fUsage.set('internal')">Внутр.</button>
+          <button [class.is-active]="fUsage() === 'external'" (click)="fUsage.set('external')">Наруж.</button>
+        </div>
+        <label class="adm-check">
+          <input type="checkbox" [checked]="catAllSelected()" (change)="toggleCatSelectAll()" />
+          Выбрать все
+        </label>
+      </div>
+    </div>
+
+    <!-- Catalog bulk bar -->
+    <div class="adm-bulk-bar" *ngIf="catSelected().size > 0">
+      <span class="adm-bulk-bar__count">{{ catSelected().size }} выбрано</span>
+      <div class="adm-bulk-bar__actions">
+        <button class="adm-chip" (click)="bulkSetAvail('check')">→ В наличии</button>
+        <button class="adm-chip" (click)="bulkSetAvail('order')">→ Под заказ</button>
+        <select class="adm-bulk-bar__select" (change)="bulkSetCategory($event)">
+          <option value="">↦ Категория…</option>
+          <option *ngFor="let c of store.categories()" [value]="c.id">{{ c.title }}</option>
+        </select>
+        <button class="adm-btn adm-btn--sm adm-btn--danger" (click)="bulkDeleteCat()">Удалить</button>
+        <button class="adm-btn adm-btn--sm" (click)="clearCatSelection()">Отмена</button>
       </div>
     </div>
 
@@ -73,6 +96,7 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
       <table class="adm-table adm-table--sortable">
         <thead>
           <tr>
+            <th style="width:36px;"></th>
             <th (click)="setSort('sku')">Артикул <i>{{ arrow('sku') }}</i></th>
             <th (click)="setSort('title')">Название <i>{{ arrow('title') }}</i></th>
             <th (click)="setSort('category')">Категория <i>{{ arrow('category') }}</i></th>
@@ -82,7 +106,11 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of filtered()">
+          <tr *ngFor="let p of filtered()" [class.is-selected]="catSelected().has(p.sku)">
+            <td style="padding:13px 8px 13px 16px;">
+              <input type="checkbox" [checked]="catSelected().has(p.sku)"
+                     (change)="toggleCatSelect(p.sku, $event)" />
+            </td>
             <td class="adm-mono">{{ p.sku }}</td>
             <td>{{ p.title }}</td>
             <td>{{ catTitle(p.category) }}</td>
@@ -199,10 +227,36 @@ type SortKey = 'sku' | 'title' | 'diameter' | 'category' | 'priceRetail';
             <input type="number" [(ngModel)]="d.wholesaleFrom" name="wholesaleFrom" min="1" placeholder="10" />
           </label>
         </div>
-        <label class="adm-field">
-          <span>SKU в 1С (необязательно)</span>
-          <input [(ngModel)]="d.sku1c" name="sku1c" placeholder="000001234" class="adm-mono" />
-        </label>
+        <div class="adm-grid2">
+          <label class="adm-field">
+            <span>SKU в 1С (необязательно)</span>
+            <input [(ngModel)]="d.sku1c" name="sku1c" placeholder="000001234" class="adm-mono" />
+          </label>
+          <label class="adm-field">
+            <span>Остаток на складе (шт)</span>
+            <input type="number" [(ngModel)]="d.stock" name="stock" min="0" placeholder="0" class="adm-mono" />
+          </label>
+        </div>
+
+        <h3 class="adm-modal__section">Фото товара</h3>
+        <div class="adm-img-upload">
+          <div class="adm-img-upload__preview" [class.is-empty]="!d.image">
+            <img *ngIf="d.image" [src]="d.image" alt="Превью" />
+            <span *ngIf="!d.image">Нет фото</span>
+          </div>
+          <div class="adm-img-upload__actions">
+            <label class="adm-btn adm-btn--sm">
+              ↑ Загрузить
+              <input type="file" accept="image/*" hidden (change)="onProductPhoto($event)" />
+            </label>
+            <button type="button" class="adm-btn adm-btn--sm" *ngIf="d.image"
+                    (click)="d.image = ''">✕ Удалить</button>
+          </div>
+          <p class="adm-note" style="margin:0">
+            JPG/PNG до 5&nbsp;МБ. Изображение автоматически уменьшается до 900&nbsp;px и
+            сжимается. Если фото не загружено — будет показано фото категории.
+          </p>
+        </div>
 
         <p class="adm-modal__err" *ngIf="dupErr()">Товар с таким артикулом уже существует.</p>
 
@@ -218,6 +272,7 @@ export class CatalogAdminComponent {
   readonly store = inject(DataStore);
   private readonly toast = inject(ToastService);
   private readonly excel = inject(ExcelService);
+  private readonly pdf = inject(PdfService);
 
   readonly search = signal('');
   readonly fCat = signal<'all' | ProductCategory>('all');
@@ -229,6 +284,13 @@ export class CatalogAdminComponent {
   readonly isNew = signal(false);
   readonly dupErr = signal(false);
   readonly importPreview = signal<ImportResult | null>(null);
+  readonly catSelected = signal<Set<string>>(new Set());
+
+  readonly catAllSelected = computed(() => {
+    const f = this.filtered();
+    const sel = this.catSelected();
+    return f.length > 0 && f.every((p) => sel.has(p.sku));
+  });
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -260,6 +322,57 @@ export class CatalogAdminComponent {
   }
   arrow(k: SortKey): string {
     return this.sortKey() === k ? (this.sortDir() === 1 ? '↑' : '↓') : '';
+  }
+
+  toggleCatSelect(sku: string, ev: Event): void {
+    const checked = (ev.target as HTMLInputElement).checked;
+    this.catSelected.update((s) => {
+      const next = new Set(s);
+      checked ? next.add(sku) : next.delete(sku);
+      return next;
+    });
+  }
+
+  toggleCatSelectAll(): void {
+    if (this.catAllSelected()) {
+      this.catSelected.set(new Set());
+    } else {
+      this.catSelected.set(new Set(this.filtered().map((p) => p.sku)));
+    }
+  }
+
+  bulkSetAvail(avail: Availability): void {
+    const skus = [...this.catSelected()];
+    skus.forEach((sku) => {
+      const p = this.store.products().find((x) => x.sku === sku);
+      if (p) this.store.upsertProduct({ ...p, availability: avail });
+    });
+    this.catSelected.set(new Set());
+    this.toast.ok(`${skus.length} товаров → «${avail === 'check' ? 'В наличии' : 'Под заказ'}»`);
+  }
+
+  bulkSetCategory(ev: Event): void {
+    const sel = ev.target as HTMLSelectElement;
+    const cat = sel.value as ProductCategory;
+    sel.value = '';
+    if (!cat) return;
+    const skus = [...this.catSelected()];
+    skus.forEach((sku) => {
+      const p = this.store.products().find((x) => x.sku === sku);
+      if (p && p.category !== cat) this.store.upsertProduct({ ...p, category: cat });
+    });
+    this.catSelected.set(new Set());
+    this.toast.ok(`${skus.length} товаров → «${this.catTitle(cat)}»`);
+  }
+
+  clearCatSelection(): void { this.catSelected.set(new Set()); }
+
+  bulkDeleteCat(): void {
+    const skus = [...this.catSelected()];
+    if (!confirm(`Удалить ${skus.length} товаров?`)) return;
+    skus.forEach((sku) => this.store.deleteProduct(sku));
+    this.catSelected.set(new Set());
+    this.toast.ok(`Удалено ${skus.length} товаров`);
   }
 
   create(): void {
@@ -296,7 +409,11 @@ export class CatalogAdminComponent {
       this.dupErr.set(true);
       return;
     }
-    this.store.upsertProduct({ ...d, diameter: +d.diameter });
+    this.store.upsertProduct({
+      ...d,
+      diameter: +d.diameter,
+      stock: d.stock != null && `${d.stock}` !== '' ? Math.max(0, Math.round(+d.stock)) : undefined,
+    });
     this.draft.set(null);
     this.toast.ok(this.isNew() ? 'Товар добавлен' : 'Сохранено');
   }
@@ -308,11 +425,56 @@ export class CatalogAdminComponent {
     }
   }
 
+  // ── Photo upload (с downscale) ─────────────────────────────────────
+  async onProductPhoto(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file || !this.draft()) return;
+    input.value = '';
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.toast.err('Файл больше 5 МБ');
+      return;
+    }
+    const dataUrl = await this.downscale(file, 900, 0.82);
+    const d = this.draft();
+    if (d) this.draft.set({ ...d, image: dataUrl });
+  }
+
+  private downscale(file: File, maxPx: number, quality: number): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ── Excel ──────────────────────────────────────────────────────────
 
   async exportExcel(): Promise<void> {
     await this.excel.exportCatalog(this.store.products());
     this.toast.ok('Excel-прайс скачан');
+  }
+
+  async exportPricePdf(): Promise<void> {
+    await this.pdf.priceList(
+      this.store.products(),
+      this.store.categories(),
+      this.store.content(),
+    );
+    this.toast.ok('Прайс-лист PDF скачан');
   }
 
   async importFile(ev: Event): Promise<void> {

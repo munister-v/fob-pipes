@@ -41,6 +41,10 @@ export interface Product {
   unit?: PriceUnit;
   /** 1С external key for future integration */
   sku1c?: string;
+  /** product photo — data URL (uploaded) or assets path */
+  image?: string;
+  /** физический остаток на складе (шт). Резерв считается автоматически из активных заявок. */
+  stock?: number;
 }
 
 export interface CategoryDef {

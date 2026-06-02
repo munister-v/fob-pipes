@@ -6,6 +6,8 @@ import { ToastService } from './toast.service';
 import { PdfService } from '../services/pdf.service';
 import { ExcelService } from '../services/excel.service';
 
+const DAY_MS = 86_400_000;
+
 @Component({
   selector: 'app-quotes-admin',
   standalone: true,
@@ -30,6 +32,23 @@ import { ExcelService } from '../services/excel.service';
       </div>
     </header>
 
+    <!-- Date range filter -->
+    <div class="adm-date-bar">
+      <span class="adm-date-bar__lbl">Период:</span>
+      <div class="adm-date-presets">
+        <button class="adm-chip" [class.is-active]="datePreset() === 'all'" (click)="setPreset('all')">Всё время</button>
+        <button class="adm-chip" [class.is-active]="datePreset() === '7'" (click)="setPreset('7')">7 дней</button>
+        <button class="adm-chip" [class.is-active]="datePreset() === '30'" (click)="setPreset('30')">30 дней</button>
+        <button class="adm-chip" [class.is-active]="datePreset() === '90'" (click)="setPreset('90')">3 мес.</button>
+        <button class="adm-chip" [class.is-active]="datePreset() === 'custom'" (click)="setPreset('custom')">Диапазон</button>
+      </div>
+      <div class="adm-date-inputs" *ngIf="datePreset() === 'custom'">
+        <input type="date" class="adm-date-input" [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)" />
+        <span>—</span>
+        <input type="date" class="adm-date-input" [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)" />
+      </div>
+    </div>
+
     <div class="adm-toolbar">
       <div class="adm-tabs">
         <button [class.is-active]="filter() === 'all'" (click)="filter.set('all')">Все <i>{{ store.quotes().length }}</i></button>
@@ -37,9 +56,28 @@ import { ExcelService } from '../services/excel.service';
         <button [class.is-active]="filter() === 'in_progress'" (click)="filter.set('in_progress')">В работе <i>{{ count('in_progress') }}</i></button>
         <button [class.is-active]="filter() === 'done'" (click)="filter.set('done')">Закрытые <i>{{ count('done') }}</i></button>
       </div>
-      <button class="adm-sort" (click)="toggleSort()">
-        {{ sort() === 'new' ? '↓ Сначала новые' : '↑ Сначала старые' }}
-      </button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <label class="adm-check">
+          <input type="checkbox" [checked]="allSelected()" (change)="toggleSelectAll()" />
+          Выбрать все
+        </label>
+        <button class="adm-sort" (click)="toggleSort()">
+          {{ sort() === 'new' ? '↓ Сначала новые' : '↑ Сначала старые' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Bulk actions bar -->
+    <div class="adm-bulk-bar" *ngIf="selected().size > 0">
+      <span class="adm-bulk-bar__count">{{ selected().size }} выбрано</span>
+      <div class="adm-bulk-bar__actions">
+        <span>Изменить статус:</span>
+        <button class="adm-chip" (click)="bulkSetStatus('new')">Новые</button>
+        <button class="adm-chip" (click)="bulkSetStatus('in_progress')">В работе</button>
+        <button class="adm-chip" (click)="bulkSetStatus('done')">Закрытые</button>
+        <button class="adm-btn adm-btn--sm adm-btn--danger" (click)="bulkDelete()">Удалить</button>
+        <button class="adm-btn adm-btn--sm" (click)="clearSelection()">Отмена</button>
+      </div>
     </div>
 
     <div class="adm-empty adm-empty--big" *ngIf="filtered().length === 0">
@@ -47,8 +85,14 @@ import { ExcelService } from '../services/excel.service';
     </div>
 
     <div class="adm-quotes">
-      <article class="adm-quote" *ngFor="let q of filtered()" [class.is-new]="q.status === 'new'">
+      <article class="adm-quote" *ngFor="let q of filtered()"
+               [class.is-new]="q.status === 'new'"
+               [class.is-selected]="selected().has(q.id)">
         <div class="adm-quote__bar" (click)="toggle(q.id)">
+          <label class="adm-quote__chk" (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="selected().has(q.id)"
+                   (change)="toggleSelect(q.id, $event)" />
+          </label>
           <span class="adm-quote__id adm-mono">{{ q.id }}</span>
           <span class="adm-quote__name">{{ q.name || 'Без имени' }}</span>
           <span class="adm-quote__phone adm-mono">{{ q.phone }}</span>
@@ -76,6 +120,7 @@ import { ExcelService } from '../services/excel.service';
               </dl>
               <div class="adm-quote__contact" *ngIf="q.phone">
                 <a class="adm-btn adm-btn--sm" [href]="'tel:' + tel(q.phone)">Позвонить</a>
+                <a class="adm-btn adm-btn--sm adm-btn--wa" [href]="'https://wa.me/' + waNum(q.phone)" target="_blank" rel="noopener">WhatsApp</a>
                 <a class="adm-btn adm-btn--sm" [href]="'viber://chat?number=' + telEnc(q.phone)" target="_blank" rel="noopener">Viber</a>
                 <button class="adm-btn adm-btn--sm" (click)="copy(q.phone)">Копировать</button>
               </div>
@@ -144,6 +189,10 @@ export class QuotesAdminComponent {
   readonly search = signal('');
   readonly sort = signal<'new' | 'old'>('new');
   readonly open = signal<string | null>(null);
+  readonly selected = signal<Set<string>>(new Set());
+  readonly datePreset = signal<'all' | '7' | '30' | '90' | 'custom'>('all');
+  readonly dateFrom = signal('');
+  readonly dateTo = signal('');
 
   readonly newCount = computed(() => this.count('new'));
 
@@ -151,8 +200,56 @@ export class QuotesAdminComponent {
     this.filtered().reduce((s, q) => s + this.quoteSum(q), 0)
   );
 
+  readonly allSelected = computed(() => {
+    const f = this.filtered();
+    const sel = this.selected();
+    return f.length > 0 && f.every((q) => sel.has(q.id));
+  });
+
   count(s: QuoteStatus): number {
     return this.store.quotes().filter((q) => q.status === s).length;
+  }
+
+  setPreset(p: 'all' | '7' | '30' | '90' | 'custom'): void {
+    this.datePreset.set(p);
+  }
+
+  toggleSelect(id: string, ev: Event): void {
+    const checked = (ev.target as HTMLInputElement).checked;
+    this.selected.update((s) => {
+      const next = new Set(s);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }
+
+  toggleSelectAll(): void {
+    if (this.allSelected()) {
+      this.selected.set(new Set());
+    } else {
+      this.selected.set(new Set(this.filtered().map((q) => q.id)));
+    }
+  }
+
+  clearSelection(): void { this.selected.set(new Set()); }
+
+  bulkSetStatus(status: QuoteStatus): void {
+    const ids = [...this.selected()];
+    ids.forEach((id) => this.store.setQuoteStatus(id, status));
+    this.clearSelection();
+    this.toast.ok(`${ids.length} заявок → «${this.label(status)}`);
+  }
+
+  bulkDelete(): void {
+    const ids = [...this.selected()];
+    if (!confirm(`Удалить ${ids.length} заявок?`)) return;
+    ids.forEach((id) => this.store.deleteQuote(id));
+    this.clearSelection();
+    this.toast.ok(`Удалено ${ids.length} заявок`);
+  }
+
+  waNum(p: string): string {
+    return this.tel(p).replace(/^\+/, '');
   }
 
   quoteSum(q: StoredQuote): number {
@@ -166,7 +263,22 @@ export class QuotesAdminComponent {
   readonly filtered = computed(() => {
     const f = this.filter();
     const q = this.search().trim().toLowerCase();
+    const preset = this.datePreset();
     let list = this.store.quotes();
+
+    // date filter
+    if (preset !== 'all') {
+      let from = 0;
+      let to = Date.now();
+      if (preset === 'custom') {
+        if (this.dateFrom()) from = new Date(this.dateFrom()).getTime();
+        if (this.dateTo()) to = new Date(this.dateTo()).getTime() + DAY_MS - 1;
+      } else {
+        from = Date.now() - Number(preset) * DAY_MS;
+      }
+      list = list.filter((x) => x.createdAt >= from && x.createdAt <= to);
+    }
+
     if (f !== 'all') list = list.filter((x) => x.status === f);
     if (q) {
       list = list.filter(

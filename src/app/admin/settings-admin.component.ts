@@ -5,6 +5,7 @@ import { DataStore } from '../services/data-store.service';
 import { AdminAuth } from './admin-auth.service';
 import { ToastService } from './toast.service';
 import { TelegramService } from '../services/telegram.service';
+import { OneCService } from '../services/onec.service';
 
 const TG_TOKEN_KEY  = 'fob-tg-token';
 const TG_CHAT_KEY   = 'fob-tg-chat';
@@ -118,6 +119,23 @@ const TG_CHAT_KEY   = 'fob-tg-chat';
       </div>
     </section>
 
+    <!-- 1С / CommerceML -->
+    <section class="adm-card">
+      <div class="adm-card__head">
+        <h2>Выгрузка в 1С (CommerceML 2.08)</h2>
+        <span class="adm-sub">import.xml · offers.xml</span>
+      </div>
+      <p class="adm-note">
+        Стандартный обмен 1С:Предприятие 8. <b>import.xml</b> — классификатор (группы) и каталог
+        товаров с характеристиками; <b>offers.xml</b> — пакет предложений с ценами
+        (розница/опт) и остатками со склада. Кодировка UTF-8, идентификаторы стабильны
+        между выгрузками. SKU из поля «SKU в 1С» используется как Ид товара, если задан.
+      </p>
+      <div class="adm-actions-row">
+        <button class="adm-btn adm-btn--accent" (click)="exportOneC()">↓ Скачать import.xml + offers.xml</button>
+      </div>
+    </section>
+
     <!-- Backup / restore -->
     <section class="adm-card">
       <div class="adm-card__head">
@@ -154,6 +172,7 @@ export class SettingsAdminComponent {
   readonly store = inject(DataStore);
   readonly auth  = inject(AdminAuth);
   readonly tg    = inject(TelegramService);
+  private readonly onec  = inject(OneCService);
   private readonly toast = inject(ToastService);
 
   pwCur = '';
@@ -192,6 +211,11 @@ export class SettingsAdminComponent {
     this.tgToken = '';
     this.tgChat  = '';
     this.toast.ok('Telegram отключён');
+  }
+
+  exportOneC(): void {
+    this.onec.exportAll(this.store.products(), this.store.categories(), this.store.content());
+    this.toast.ok('Файлы 1С (import.xml + offers.xml) скачаны');
   }
 
   backup(): void {

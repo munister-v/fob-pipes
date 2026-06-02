@@ -1,4 +1,5 @@
 <article class="card" [class.card--in]="quote.has(product.sku)">
+  <a class="card__link" [routerLink]="['/catalog', product.sku]" [attr.aria-label]="'Открыть ' + product.title"></a>
   <div class="card__art" [attr.data-cat]="product.category">
     <div class="card__art-bg"></div>
     <span class="card__sku mono-num">{{ product.sku }}</span>
@@ -8,7 +9,10 @@
       {{ product.usage === 'external' ? 'Наружная' : 'Внутренняя' }}
     </span>
 
-    <svg class="schema" viewBox="0 0 220 140" fill="none" aria-hidden="true">
+    <!-- Реальное фото (если загружено) — поверх SVG-схемы -->
+    <img *ngIf="product.image" [src]="product.image" [alt]="product.title" class="card__photo" loading="lazy" />
+
+    <svg *ngIf="!product.image" class="schema" viewBox="0 0 220 140" fill="none" aria-hidden="true">
       <defs>
         <linearGradient [attr.id]="'g-' + product.sku" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="currentColor" stop-opacity="0.16" />
@@ -61,13 +65,24 @@
       <span class="chip">{{ product.material }}</span>
     </div>
 
+    <!-- Цена (если есть) -->
+    <div class="card__price" *ngIf="(product.priceRetail ?? 0) > 0">
+      <span class="card__price-val mono-num">{{ product.priceRetail | number:'1.0-0':'ru' }} ₽</span>
+      <span class="card__price-unit">/ {{ product.unit || 'шт' }}</span>
+      <span class="card__price-opt mono-num"
+            *ngIf="(product.priceWholesale ?? 0) > 0 && product.priceWholesale! < product.priceRetail!">
+        опт от {{ product.priceWholesale | number:'1.0-0':'ru' }} ₽
+        <ng-container *ngIf="product.wholesaleFrom"> (от {{ product.wholesaleFrom }} шт)</ng-container>
+      </span>
+    </div>
+
     <div class="card__foot">
       <span class="status" [class.status--order]="product.availability === 'order'">
         <span class="status__dot"></span>
         {{ product.availability === 'order' ? 'Под заказ' : 'Уточнить наличие' }}
       </span>
 
-      <button class="add" (click)="add()" [disabled]="quote.has(product.sku)">
+      <button class="add" (click)="add(); $event.stopPropagation()" [disabled]="quote.has(product.sku)">
         <span *ngIf="!quote.has(product.sku)">Добавить в заявку <i>+</i></span>
         <span *ngIf="quote.has(product.sku)">В заявке <i>✓</i></span>
       </button>

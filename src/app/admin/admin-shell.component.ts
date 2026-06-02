@@ -11,6 +11,8 @@ const ICONS: Record<string, string> = {
   catalog:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h10M4 18h8"/></svg>`,
   quotes:    `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
   content:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  clients:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  warehouse: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><rect x="7" y="13" width="10" height="8"/><path d="M7 17h10"/></svg>`,
   settings:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
   site:      `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
   logout:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
@@ -104,6 +106,18 @@ const ICONS: Record<string, string> = {
             Контент
           </a>
 
+          <a routerLink="/admin/clients" routerLinkActive="is-active">
+            <span class="adm-nav__ico" [innerHTML]="ico('clients')"></span>
+            Клиенты
+            <span class="adm-nav__badge">{{ clientCount() }}</span>
+          </a>
+
+          <a routerLink="/admin/warehouse" routerLinkActive="is-active">
+            <span class="adm-nav__ico" [innerHTML]="ico('warehouse')"></span>
+            Склад
+            <span class="adm-nav__badge adm-nav__badge--hot" *ngIf="lowStockCount() > 0">{{ lowStockCount() }}</span>
+          </a>
+
           <span class="adm-nav__label">Система</span>
           <a routerLink="/admin/settings" routerLinkActive="is-active">
             <span class="adm-nav__ico" [innerHTML]="ico('settings')"></span>
@@ -160,6 +174,25 @@ export class AdminShellComponent {
   readonly menu  = signal(false);
 
   readonly newCount = computed(() => this.store.quotes().filter((q) => q.status === 'new').length);
+
+  readonly clientCount = computed(() => {
+    const phones = new Set(
+      this.store.quotes()
+        .map((q) => q.phone?.replace(/\D/g, '').replace(/^8/, '7'))
+        .filter(Boolean)
+    );
+    return phones.size;
+  });
+
+  /** Товары, где доступный остаток (склад − резерв) исчерпан, но физически они есть либо были. */
+  readonly lowStockCount = computed(() => {
+    const res = this.store.reservations();
+    return this.store.products().filter((p) => {
+      const stock = p.stock ?? 0;
+      if (stock <= 0) return false; // не считаем товары, для которых склад вообще не ведётся
+      return stock - (res.get(p.sku) ?? 0) <= 0;
+    }).length;
+  });
 
   ico(name: string): string { return ICONS[name] ?? ''; }
 

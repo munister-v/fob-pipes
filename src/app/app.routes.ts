@@ -18,6 +18,11 @@ export const routes: Routes = [
         title: 'Каталог — трубы и фитинги ПВХ, ПП, ПНД | Ф.О.Б',
       },
       {
+        path: 'catalog/:sku',
+        loadComponent: () => import('./pages/product.page').then((m) => m.ProductPage),
+        title: 'Карточка товара | Ф.О.Б',
+      },
+      {
         path: 'proizvodstvo',
         loadComponent: () => import('./pages/about.page').then((m) => m.AboutPage),
         title: 'Производство и история | Ф.О.Б, Донецк',

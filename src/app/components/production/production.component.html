@@ -12,21 +12,21 @@
         <p>
           Компания основана в <b>1998 году</b> под маркой «ЮНИПЛАСТ». Сегодня мы
           выпускаем продукцию под торговыми марками <b>«Юнипласт»</b> и <b>«Ф.О.Б»</b> —
-          одно из первых и крупнейших производств пластиковой канализации.
+          одно из первых и крупнейших производств пластиковой канализации в регионе.
         </p>
         <p>
           На заводе установлено современное европейское оборудование: работают
           <b>5 экструзионных линий</b> и <b>9 термопластавтоматов</b>. Технические
-          специалисты прошли обучение на заводах-поставщиков оборудования. Используем
-          только высококачественное сырьё и соблюдаем стандарты контроля качества.
+          специалисты прошли обучение на заводах-поставщиков. Используем только
+          высококачественное сырьё — первичный ПВХ, ПП и ПНД без вторичного сырья.
         </p>
         <p>
           Постоянно расширяем ассортимент — сегодня <b>свыше 200 видов продукции</b>.
-          Оптовая сеть охватывает Россию, страны ближнего зарубежья и Европу.
-          Постоянный участник международной выставки <b>Aqua-Therm</b>.
+          Оптовая сеть охватывает Россию, страны СНГ. Постоянный участник
+          международной выставки <b>Aqua-Therm</b>.
         </p>
         <div class="lead__tags">
-          <span>ПВХ</span><span>Полипропилен</span><span>ПНД</span>
+          <span>ПВХ · первичный</span><span>Полипропилен PP</span><span>ПНД · PE100</span>
           <span>Экструзия</span><span>Литьё под давлением</span><span>Aqua-Therm</span>
         </div>
       </div>
@@ -58,10 +58,10 @@
       </div>
     </div>
 
-    <!-- Фотогалерея цеха -->
+    <!-- Фотогалерея цеха — 5 фото: tall + 4 = идеально заполняют 3×2 -->
     <div class="shop-grid" appReveal [revealDelay]="60">
       <figure class="shop-grid__item shop-grid__item--tall">
-        <img src="assets/img/machine-1.jpg" alt="Термопластавтомат — литьё фитинга" loading="lazy" />
+        <img src="assets/img/machine-1.jpg" alt="Термопластавтомат — литьё фитинга ПП" loading="lazy" />
         <figcaption class="mono-num">ТПА · ЛИТЬЁ ПОД ДАВЛЕНИЕМ</figcaption>
       </figure>
       <figure class="shop-grid__item">
@@ -69,21 +69,44 @@
         <figcaption class="mono-num">ЦЕХ · 9 МАШИН</figcaption>
       </figure>
       <figure class="shop-grid__item">
-        <img src="assets/img/prod-1.jpg" alt="Трубы ПП с зелёными раструбами — партия на отгрузку" loading="lazy" />
-        <figcaption class="mono-num">ТРУБЫ ПП · РАСТРУБНЫЕ</figcaption>
+        <img src="assets/img/factory/IMG_9904.JPG" alt="Производственный цех Ф.О.Б" loading="lazy" />
+        <figcaption class="mono-num">ЦЕХ · ПРОИЗВОДСТВО</figcaption>
+      </figure>
+      <figure class="shop-grid__item">
+        <img src="assets/img/prod-2.jpg" alt="Рыжие трубы ПВХ наружной канализации SN4" loading="lazy" />
+        <figcaption class="mono-num">ТРУБЫ ПВХ · НАРУЖНЫЕ SN4</figcaption>
       </figure>
       <figure class="shop-grid__item">
         <img src="assets/img/prod-4.jpg" alt="Отводы ПП на паллетах — склад готовой продукции" loading="lazy" />
-        <figcaption class="mono-num">ОТВОДЫ · СКЛАД</figcaption>
+        <figcaption class="mono-num">ОТВОДЫ ПП · СКЛАД</figcaption>
       </figure>
-      <figure class="shop-grid__item">
-        <img src="assets/img/prod-2.jpg" alt="Рыжие трубы ПВХ наружной канализации" loading="lazy" />
-        <figcaption class="mono-num">ТРУБЫ ПВХ · НАРУЖНЫЕ</figcaption>
-      </figure>
-      <figure class="shop-grid__item">
-        <img src="assets/img/prod-5.jpg" alt="Фирменная упаковка Ф.О.Б — готово к отгрузке" loading="lazy" />
-        <figcaption class="mono-num">УПАКОВКА · ОТГРУЗКА</figcaption>
-      </figure>
+    </div>
+
+    <!-- Технологический процесс -->
+    <div class="process" appReveal [revealDelay]="80">
+      <div class="process__step">
+        <span class="process__num">01</span>
+        <h4>Сырьё</h4>
+        <p>Первичный ПВХ, PP-H и ПНД (PE100) от проверенных европейских поставщиков. Без вторичного сырья.</p>
+      </div>
+      <div class="process__arr">→</div>
+      <div class="process__step">
+        <span class="process__num">02</span>
+        <h4>Экструзия / Литьё</h4>
+        <p>5 экструзионных линий для труб, 9 ТПА для фитингов. Непрерывный контроль геометрии.</p>
+      </div>
+      <div class="process__arr">→</div>
+      <div class="process__step">
+        <span class="process__num">03</span>
+        <h4>Контроль ОТК</h4>
+        <p>Проверка диаметра, толщины стенки, кольцевой жёсткости. Гидравлические испытания раструбов.</p>
+      </div>
+      <div class="process__arr">→</div>
+      <div class="process__step">
+        <span class="process__num">04</span>
+        <h4>Упаковка</h4>
+        <p>Маркировка ТМ «Ф.О.Б», паспорт партии, паллетирование. Готово к отгрузке.</p>
+      </div>
     </div>
   </div>
 </section>
