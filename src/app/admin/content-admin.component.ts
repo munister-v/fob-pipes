@@ -98,7 +98,7 @@ type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
                    placeholder="+7 (949) 306-35-22" class="adm-mono" />
           </label>
           <label class="adm-field">
-            <span>Viber / WhatsApp</span>
+            <span>Телефон · дополнительный</span>
             <input [(ngModel)]="c.viber" (ngModelChange)="touch()"
                    placeholder="+7 (949) 624-99-80" class="adm-mono" />
           </label>
@@ -127,7 +127,7 @@ type Tab = 'main' | 'about' | 'contacts' | 'categories' | 'company' | 'help';
               <span class="adm-preview__val">{{ c.phone || '—' }}</span>
             </div>
             <div class="adm-preview__row">
-              <span class="adm-preview__lbl">Viber</span>
+              <span class="adm-preview__lbl">Доп. тел.</span>
               <span class="adm-preview__val">{{ c.viber || '—' }}</span>
             </div>
             <div class="adm-preview__row">

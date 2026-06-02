@@ -120,8 +120,6 @@ const DAY_MS = 86_400_000;
               </dl>
               <div class="adm-quote__contact" *ngIf="q.phone">
                 <a class="adm-btn adm-btn--sm" [href]="'tel:' + tel(q.phone)">Позвонить</a>
-                <a class="adm-btn adm-btn--sm adm-btn--wa" [href]="'https://wa.me/' + waNum(q.phone)" target="_blank" rel="noopener">WhatsApp</a>
-                <a class="adm-btn adm-btn--sm" [href]="'viber://chat?number=' + telEnc(q.phone)" target="_blank" rel="noopener">Viber</a>
                 <button class="adm-btn adm-btn--sm" (click)="copy(q.phone)">Копировать</button>
               </div>
 
@@ -248,10 +246,6 @@ export class QuotesAdminComponent {
     this.toast.ok(`Удалено ${ids.length} заявок`);
   }
 
-  waNum(p: string): string {
-    return this.tel(p).replace(/^\+/, '');
-  }
-
   quoteSum(q: StoredQuote): number {
     return q.lines.reduce((s, l) => s + (l.product.priceRetail ?? 0) * l.qty, 0);
   }
@@ -308,9 +302,6 @@ export class QuotesAdminComponent {
   }
   tel(p: string): string {
     return p.replace(/[^\d+]/g, '');
-  }
-  telEnc(p: string): string {
-    return encodeURIComponent(this.tel(p));
   }
 
   toggle(id: string): void {

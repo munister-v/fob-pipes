@@ -23,6 +23,11 @@ export const routes: Routes = [
         title: 'Карточка товара | Ф.О.Б',
       },
       {
+        path: 'podbor',
+        loadComponent: () => import('./pages/podbor.page').then((m) => m.PodborPage),
+        title: 'Подбор и расчёт канализации | Ф.О.Б',
+      },
+      {
         path: 'proizvodstvo',
         loadComponent: () => import('./pages/about.page').then((m) => m.AboutPage),
         title: 'Производство и история | Ф.О.Б, Донецк',

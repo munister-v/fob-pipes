@@ -84,8 +84,6 @@ interface ClientRow {
         <div class="adm-client__body" *ngIf="open() === c.phone">
           <div class="adm-client__actions">
             <a class="adm-btn adm-btn--sm" [href]="'tel:' + telClean(c.phone)">Позвонить</a>
-            <a class="adm-btn adm-btn--sm" [href]="'https://wa.me/' + waNum(c.phone)" target="_blank" rel="noopener">WhatsApp</a>
-            <a class="adm-btn adm-btn--sm" [href]="'viber://chat?number=' + telEnc(c.phone)" target="_blank" rel="noopener">Viber</a>
           </div>
           <table class="adm-table adm-table--mini adm-client__hist">
             <thead>
@@ -188,8 +186,6 @@ export class ClientsAdminComponent {
   }
 
   telClean(p: string): string { return p.replace(/[^\d+]/g, ''); }
-  telEnc(p: string): string { return encodeURIComponent(this.telClean(p)); }
-  waNum(p: string): string { return this.telClean(p).replace(/^\+/, ''); }
 
   toggle(phone: string): void {
     this.open.update((cur) => (cur === phone ? null : phone));

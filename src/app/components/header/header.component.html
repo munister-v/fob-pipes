@@ -27,6 +27,7 @@
         </div>
       </div>
 
+      <a class="nav__link" routerLink="/podbor" routerLinkActive="is-active" (click)="closeAll()">Подбор</a>
       <a class="nav__link" routerLink="/proizvodstvo" routerLinkActive="is-active" (click)="closeAll()">Производство</a>
       <a class="nav__link" routerLink="/kontakty" routerLinkActive="is-active" (click)="closeAll()">Контакты</a>
     </nav>
@@ -47,9 +48,10 @@
     <nav class="drawer__nav">
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact:true}" (click)="closeAll()"><span class="mono-num">01</span> Главная</a>
       <a routerLink="/catalog" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">02</span> Каталог</a>
-      <a routerLink="/proizvodstvo" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">03</span> Производство</a>
-      <a routerLink="/zayavka" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">04</span> Заявка</a>
-      <a routerLink="/kontakty" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">05</span> Контакты</a>
+      <a routerLink="/podbor" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">03</span> Подбор и расчёт</a>
+      <a routerLink="/proizvodstvo" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">04</span> Производство</a>
+      <a routerLink="/zayavka" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">05</span> Заявка</a>
+      <a routerLink="/kontakty" routerLinkActive="is-active" (click)="closeAll()"><span class="mono-num">06</span> Контакты</a>
     </nav>
     <div class="drawer__foot">
       <a class="drawer__contact" href="tel:+79493063522">+7 (949) 306-35-22</a>

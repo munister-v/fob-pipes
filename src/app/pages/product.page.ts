@@ -102,10 +102,6 @@ import { DataStore } from '../services/data-store.service';
                   <a [href]="'tel:' + tel(store.content().phone)" class="prod-page__contact-link">
                     {{ store.content().phone }}
                   </a>
-                  <a [href]="'viber://chat?number=' + tel(store.content().viber)"
-                     target="_blank" rel="noopener" class="prod-page__contact-link prod-page__contact-link--alt">
-                    Viber
-                  </a>
                   <a [href]="'mailto:' + store.content().email"
                      class="prod-page__contact-link prod-page__contact-link--alt">
                     Email

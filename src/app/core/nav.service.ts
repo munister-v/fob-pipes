@@ -14,6 +14,7 @@ const MAP: Record<string, Target> = {
   categories: { path: '/catalog' },
   catalog: { path: '/catalog' },
   quote: { path: '/zayavka' },
+  podbor: { path: '/podbor' },
   production: { path: '/proizvodstvo' },
   gallery: { path: '/proizvodstvo', fragment: 'gallery' },
   timeline: { path: '/proizvodstvo', fragment: 'timeline' },

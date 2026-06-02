@@ -160,7 +160,7 @@ export class PdfService {
     doc.setFontSize(7.5);
     doc.setTextColor(...GRAY);
     doc.text(
-      `${content.address}  ·  ${content.phone}  ·  Viber: ${content.viber}  ·  ${content.email}  ·  ${content.hours}`,
+      `${content.address}  ·  ${content.phone}  ·  ${content.email}  ·  ${content.hours}`,
       W / 2, footY + 5, { align: 'center' }
     );
 

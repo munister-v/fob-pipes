@@ -30,6 +30,5 @@ export class FooterComponent {
   ];
 
   tel(raw: string): string { return raw.replace(/[^\d+]/g, ''); }
-  waNum(raw: string): string { return raw.replace(/\D/g, '').replace(/^8/, '7'); }
   go(id: string): void { this.nav.go(id); }
 }
