@@ -4,6 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { DataStore } from '../services/data-store.service';
 import { AdminAuth } from './admin-auth.service';
 import { ToastService } from './toast.service';
+import { TelegramService } from '../services/telegram.service';
+
+const TG_TOKEN_KEY  = 'fob-tg-token';
+const TG_CHAT_KEY   = 'fob-tg-chat';
 
 @Component({
   selector: 'app-settings-admin',
@@ -14,7 +18,7 @@ import { ToastService } from './toast.service';
     <header class="adm-head">
       <div>
         <h1 class="adm-title">Настройки</h1>
-        <p class="adm-sub">Хранилище, резервные копии и доступ</p>
+        <p class="adm-sub">Хранилище, Telegram, резервные копии и доступ</p>
       </div>
     </header>
 
@@ -62,6 +66,58 @@ import { ToastService } from './toast.service';
       </section>
     </div>
 
+    <!-- Telegram -->
+    <section class="adm-card">
+      <div class="adm-card__head">
+        <h2>Telegram-уведомления</h2>
+        <span class="adm-dot" [class.adm-dot--ok]="tg.configured" [title]="tg.configured ? 'Настроен' : 'Не настроен'"></span>
+      </div>
+
+      <p class="adm-note" *ngIf="!tg.configured">
+        Уведомления не настроены. Заполните поля ниже — при каждой новой заявке менеджер получит
+        сообщение в Telegram с данными клиента и списком позиций.
+      </p>
+      <p class="adm-note adm-note--ok" *ngIf="tg.configured">
+        ✓ Telegram настроен. Новые заявки отправляются автоматически.
+      </p>
+
+      <div class="adm-tg-steps" *ngIf="!tg.configured">
+        <div class="adm-tg-step">
+          <span class="adm-tg-step__num">1</span>
+          <span>Откройте <b>&#64;BotFather</b> в Telegram → команда <code>/newbot</code> → скопируйте токен.</span>
+        </div>
+        <div class="adm-tg-step">
+          <span class="adm-tg-step__num">2</span>
+          <span>Напишите боту хоть что-нибудь, затем откройте <b>&#64;userinfobot</b> — скопируйте ваш ID.</span>
+        </div>
+        <div class="adm-tg-step">
+          <span class="adm-tg-step__num">3</span>
+          <span>Вставьте токен и ID ниже, нажмите «Сохранить и проверить».</span>
+        </div>
+      </div>
+
+      <div class="adm-grid2" style="margin-top:14px">
+        <label class="adm-field">
+          <span>Bot Token</span>
+          <input [(ngModel)]="tgToken" name="tgToken" placeholder="1234567890:AAF…"
+                 autocomplete="off" class="adm-mono" />
+        </label>
+        <label class="adm-field">
+          <span>Chat ID (ваш или группы)</span>
+          <input [(ngModel)]="tgChat" name="tgChat" placeholder="-100123456789 или 123456789"
+                 autocomplete="off" class="adm-mono" />
+        </label>
+      </div>
+      <div class="adm-actions-row">
+        <button class="adm-btn adm-btn--accent" (click)="saveTg()" [disabled]="!tgToken || !tgChat">
+          Сохранить и проверить
+        </button>
+        <button class="adm-btn adm-btn--danger" *ngIf="tg.configured" (click)="clearTg()">
+          Отключить
+        </button>
+      </div>
+    </section>
+
     <!-- Backup / restore -->
     <section class="adm-card">
       <div class="adm-card__head">
@@ -96,7 +152,8 @@ import { ToastService } from './toast.service';
 })
 export class SettingsAdminComponent {
   readonly store = inject(DataStore);
-  readonly auth = inject(AdminAuth);
+  readonly auth  = inject(AdminAuth);
+  readonly tg    = inject(TelegramService);
   private readonly toast = inject(ToastService);
 
   pwCur = '';
@@ -104,6 +161,9 @@ export class SettingsAdminComponent {
   pwNew2 = '';
   restoreQuotes = false;
   readonly busy = signal(false);
+
+  tgToken = localStorage.getItem(TG_TOKEN_KEY) ?? '';
+  tgChat  = localStorage.getItem(TG_CHAT_KEY)  ?? '';
 
   changePw(): void {
     if (this.pwNew !== this.pwNew2) return this.toast.err('Пароли не совпадают');
@@ -114,6 +174,24 @@ export class SettingsAdminComponent {
     } else {
       this.toast.err('Неверный текущий пароль');
     }
+  }
+
+  async saveTg(): Promise<void> {
+    localStorage.setItem(TG_TOKEN_KEY, this.tgToken.trim());
+    localStorage.setItem(TG_CHAT_KEY,  this.tgChat.trim());
+    this.tg.applyConfig(this.tgToken.trim(), this.tgChat.trim());
+    const ok = await this.tg.sendText('✅ Ф.О.Б · Telegram-уведомления подключены. Новые заявки будут приходить сюда.');
+    if (ok) this.toast.ok('Telegram настроен, тестовое сообщение отправлено');
+    else this.toast.err('Не удалось отправить тест — проверьте токен и Chat ID');
+  }
+
+  clearTg(): void {
+    localStorage.removeItem(TG_TOKEN_KEY);
+    localStorage.removeItem(TG_CHAT_KEY);
+    this.tg.applyConfig('', '');
+    this.tgToken = '';
+    this.tgChat  = '';
+    this.toast.ok('Telegram отключён');
   }
 
   backup(): void {

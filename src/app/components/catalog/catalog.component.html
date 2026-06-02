@@ -5,7 +5,11 @@
         <div class="eyebrow"><span class="dot"></span><span class="num">02</span> Каталог</div>
         <h2 class="section-title">Продукция</h2>
       </div>
-      <div class="head__count mono-num">{{ filtered().length }} {{ hasFilters() ? 'найдено' : 'позиций' }}</div>
+      <div class="catalog__search-wrap">
+        <input class="catalog__search" type="search" placeholder="Поиск по названию или артикулу…"
+               [ngModel]="fSearch()" (ngModelChange)="fSearch.set($event)" />
+        <div class="head__count mono-num">{{ filtered().length }} {{ hasFilters() ? 'найдено' : 'позиций' }}</div>
+      </div>
     </div>
 
     <div class="filters" appReveal>

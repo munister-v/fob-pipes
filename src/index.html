@@ -24,6 +24,20 @@
   <meta property="og:image" content="https://munister.com.ua/fob/assets/img/products/all.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
 
+  <!--
+    GitHub Pages SPA redirect — восстанавливает путь после 404.html.
+    404.html кодирует маршрут в ?p=/route и редиректит сюда.
+  -->
+  <script>
+    (function () {
+      var p = new URLSearchParams(window.location.search).get('p');
+      if (p) {
+        var base = window.location.pathname.replace(/\/$/, '');
+        window.history.replaceState(null, '', base + p + window.location.hash);
+      }
+    })();
+  </script>
+
   <!-- JSON-LD: LocalBusiness -->
   <script type="application/ld+json">
   {
