@@ -4,127 +4,214 @@
       <div class="eyebrow"><span class="dot"></span><span class="num">10</span> В помощь заказчику</div>
       <h2 class="section-title">Подбор и расчёт<br />системы канализации</h2>
       <p class="sel__lead">
-        Подберите трубу и фитинги по диаметру или рассчитайте количество материала
-        на трассу — с нормативным уклоном по СНиП. Всё добавляется прямо в заявку.
+        Соберите систему по нормативу — конфигуратор сам подберёт диаметр,
+        фасонные части и крепления, проверит уклон по СНиП и посчитает смету.
+        Либо рассчитайте трассу за пару полей. Всё добавляется прямо в заявку.
       </p>
     </div>
 
     <!-- Tabs -->
     <div class="sel__tabs">
-      <button [class.is-active]="tab() === 'select'" (click)="tab.set('select')">
-        Подборщик трубы
-      </button>
-      <button [class.is-active]="tab() === 'calc'" (click)="tab.set('calc')">
-        Калькулятор канализации
-      </button>
+      <button [class.is-active]="tab() === 'config'" (click)="tab.set('config')">Конфигуратор системы</button>
+      <button [class.is-active]="tab() === 'calc'" (click)="tab.set('calc')">Быстрый калькулятор</button>
     </div>
 
-    <!-- Общие параметры -->
-    <div class="sel__params">
-      <div class="sel__param">
-        <span class="sel__param-lbl">Назначение</span>
-        <div class="sel__seg">
-          <button [class.is-active]="usage() === 'internal'" (click)="selectUsage('internal')">Внутренняя</button>
-          <button [class.is-active]="usage() === 'external'" (click)="selectUsage('external')">Наружная</button>
-        </div>
-      </div>
-      <div class="sel__param">
-        <span class="sel__param-lbl">Диаметр, мм</span>
-        <div class="sel__dias">
-          <button *ngFor="let d of diameters()" [class.is-active]="dia() === d" (click)="dia.set(d)">Ø{{ d }}</button>
-          <span class="sel__hint" *ngIf="diameters().length === 0">нет данных</span>
-        </div>
-      </div>
-    </div>
+    <!-- ═══════════ КОНФИГУРАТОР ═══════════ -->
+    <ng-container *ngIf="tab() === 'config'">
+      <!-- Шаги -->
+      <ol class="cfg__steps">
+        <li [class.is-active]="step() === 1" [class.is-done]="step() > 1" (click)="reset()">
+          <span class="cfg__step-n">1</span> Тип системы
+        </li>
+        <li [class.is-active]="step() === 2" [class.is-done]="step() > 2" (click)="sysType() && step.set(2)">
+          <span class="cfg__step-n">2</span> Параметры
+        </li>
+        <li [class.is-active]="step() === 3">
+          <span class="cfg__step-n">3</span> Спецификация
+        </li>
+      </ol>
 
-    <!-- ───────────── Подборщик ───────────── -->
-    <ng-container *ngIf="tab() === 'select'">
-      <div class="sel__empty" *ngIf="dia() === null">
-        Выберите диаметр — покажем трубы и подходящие фасонные части.
+      <!-- ── Шаг 1: тип ── -->
+      <div class="cfg__types" *ngIf="step() === 1">
+        <button class="cfg__type" *ngFor="let s of systems" (click)="setSys(s.id)">
+          <span class="cfg__type-title">{{ s.title }}</span>
+          <span class="cfg__type-desc">{{ s.desc }}</span>
+          <span class="cfg__type-go">Выбрать →</span>
+        </button>
       </div>
 
-      <div class="sel__results" *ngIf="dia() !== null">
-        <!-- Трубы -->
-        <div class="sel__group" *ngIf="pipes().length">
-          <h3 class="sel__group-h">Трубы Ø{{ dia() }}</h3>
-          <div class="sel__cards">
-            <article class="sel__card sel__card--pipe" *ngFor="let p of pipes()">
-              <div class="sel__card-body">
-                <span class="sel__card-title">{{ p.title }}</span>
-                <span class="sel__card-spec">{{ p.spec }}</span>
-              </div>
-              <div class="sel__card-foot">
-                <span class="sel__price" *ngIf="(p.priceRetail ?? 0) > 0">{{ fmt(p.priceRetail!) }} ₽<small>/{{ p.unit || 'шт' }}</small></span>
-                <span class="sel__price sel__price--muted" *ngIf="!(p.priceRetail ?? 0)">по запросу</span>
-                <button class="sel__add" [class.is-in]="quote.has(p.sku)" (click)="add(p)">
-                  {{ quote.has(p.sku) ? '✓ В заявке' : '+ В заявку' }}
-                </button>
-              </div>
-            </article>
+      <!-- ── Шаг 2: параметры ── -->
+      <div class="cfg__params" *ngIf="step() === 2 && sysDef() as sys">
+        <button class="cfg__back" (click)="back()">← {{ sys.title }}</button>
+
+        <!-- Материал -->
+        <div class="cfg__row">
+          <span class="cfg__row-lbl">Материал</span>
+          <div class="sel__seg">
+            <button [class.is-active]="material() === 'any'" (click)="material.set('any')">Любой</button>
+            <button [class.is-active]="material() === 'ПП'" (click)="material.set('ПП')">ПП</button>
+            <button [class.is-active]="material() === 'ПВХ'" (click)="material.set('ПВХ')">ПВХ</button>
           </div>
         </div>
 
-        <!-- Фитинги -->
-        <div class="sel__group" *ngFor="let g of fittingGroups()">
-          <h3 class="sel__group-h">{{ g.label }}</h3>
-          <div class="sel__cards">
-            <article class="sel__card" *ngFor="let p of g.items">
-              <div class="sel__card-body">
-                <span class="sel__card-title">{{ p.title }}</span>
-                <span class="sel__card-spec">{{ p.spec }}</span>
+        <!-- Внутренняя разводка -->
+        <ng-container *ngIf="sys.id === 'internal'">
+          <p class="cfg__hint">Укажите сантехприборы — диаметр коллектора подберётся автоматически по СП 30.13330.</p>
+          <div class="cfg__fixtures">
+            <div class="cfg__fx" *ngFor="let f of fixtures" [class.is-on]="qtyOf(f.id) > 0">
+              <div class="cfg__fx-info">
+                <span class="cfg__fx-name">{{ f.label }}</span>
+                <span class="cfg__fx-meta">Ø{{ f.dia }} · {{ f.du }} л/с</span>
               </div>
-              <div class="sel__card-foot">
-                <span class="sel__price" *ngIf="(p.priceRetail ?? 0) > 0">{{ fmt(p.priceRetail!) }} ₽<small>/{{ p.unit || 'шт' }}</small></span>
-                <span class="sel__price sel__price--muted" *ngIf="!(p.priceRetail ?? 0)">по запросу</span>
-                <button class="sel__add" [class.is-in]="quote.has(p.sku)" (click)="add(p)">
-                  {{ quote.has(p.sku) ? '✓ В заявке' : '+ В заявку' }}
-                </button>
+              <div class="cfg__stepper">
+                <button (click)="incFixture(f.id, -1)" [disabled]="qtyOf(f.id) === 0">−</button>
+                <span>{{ qtyOf(f.id) }}</span>
+                <button (click)="incFixture(f.id, 1)">+</button>
               </div>
-            </article>
+            </div>
+          </div>
+          <label class="sel__field cfg__field">
+            <span>Длина коллектора (до стояка), м</span>
+            <input type="number" min="0" step="0.5" [ngModel]="collectorLen()" (ngModelChange)="collectorLen.set(+$event || 0)" />
+          </label>
+        </ng-container>
+
+        <!-- Стояк -->
+        <ng-container *ngIf="sys.id === 'riser'">
+          <div class="cfg__grid">
+            <label class="sel__field">
+              <span>Этажей</span>
+              <input type="number" min="1" step="1" [ngModel]="floors()" (ngModelChange)="floors.set(+$event || 1)" />
+            </label>
+            <label class="sel__field">
+              <span>Высота этажа, м</span>
+              <input type="number" min="2" step="0.1" [ngModel]="floorH()" (ngModelChange)="floorH.set(+$event || 2.8)" />
+            </label>
+          </div>
+        </ng-container>
+
+        <!-- Наружная / ливневая -->
+        <ng-container *ngIf="sys.id === 'external' || sys.id === 'storm'">
+          <div class="cfg__row">
+            <span class="cfg__row-lbl">Диаметр, мм</span>
+            <div class="sel__dias">
+              <button *ngFor="let d of extDiameters()" [class.is-active]="extDia() === d" (click)="extDia.set(d)">Ø{{ d }}</button>
+            </div>
+          </div>
+          <div class="cfg__grid">
+            <label class="sel__field">
+              <span>Длина трассы, м</span>
+              <input type="number" min="1" step="1" [ngModel]="extLen()" (ngModelChange)="extLen.set(+$event || 0)" />
+            </label>
+            <label class="sel__field">
+              <span>Поворотов</span>
+              <input type="number" min="0" step="1" [ngModel]="extTurns()" (ngModelChange)="extTurns.set(+$event || 0)" />
+            </label>
+            <label class="sel__field">
+              <span>Тройников / врезок</span>
+              <input type="number" min="0" step="1" [ngModel]="extTees()" (ngModelChange)="extTees.set(+$event || 0)" />
+            </label>
+            <label class="sel__field">
+              <span>Глубина заложения, м</span>
+              <input type="number" min="0" step="0.1" [ngModel]="extDepth()" (ngModelChange)="extDepth.set(+$event || 0)" />
+            </label>
+          </div>
+        </ng-container>
+
+        <button class="btn btn--accent btn--lg cfg__next" [disabled]="!canProceed()" (click)="next()">
+          Подобрать спецификацию <span class="arrow">↗</span>
+        </button>
+      </div>
+
+      <!-- ── Шаг 3: спецификация ── -->
+      <div class="cfg__result" *ngIf="step() === 3 && sysDef() as sys">
+        <button class="cfg__back" (click)="back()">← Параметры</button>
+
+        <h3 class="cfg__result-h">{{ sys.title }} · спецификация</h3>
+
+        <!-- Нормативные проверки -->
+        <div class="cfg__checks">
+          <div class="cfg__check" *ngFor="let c of configChecks()" [ngClass]="'cfg__check--' + c.status">
+            <span class="cfg__check-lbl">{{ c.label }}</span>
+            <span class="cfg__check-val">{{ c.value }}</span>
           </div>
         </div>
 
-        <div class="sel__empty" *ngIf="!pipes().length && !fittingGroups().length">
-          Для Ø{{ dia() }} ({{ usage() === 'external' ? 'наружная' : 'внутренняя' }}) в каталоге пока нет позиций.
+        <!-- BOM -->
+        <table class="sel__bom-table cfg__bom">
+          <thead>
+            <tr><th>Позиция</th><th>Подобрано</th><th class="r">Кол-во</th><th class="r">Сумма</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of configBom()" [class.is-missing]="!l.product">
+              <td>
+                {{ l.label }}
+                <span class="cfg__bom-note" *ngIf="l.note">{{ l.note }}</span>
+              </td>
+              <td class="sel__bom-pick">
+                {{ l.product ? l.product.title : '— подберёт менеджер —' }}
+                <span class="cfg__stock" *ngIf="l.product && (l.product.stock ?? 0) > 0">склад: {{ l.product.stock }}</span>
+              </td>
+              <td class="r mono">{{ l.qty }}</td>
+              <td class="r mono">{{ l.sum > 0 ? fmt(l.sum) + ' ₽' : '—' }}</td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="configHasPrices()">
+            <tr><td colspan="3" class="r">Ориентировочно (розница):</td><td class="r mono sel__bom-total">{{ fmt(configTotal()) }} ₽</td></tr>
+          </tfoot>
+        </table>
+
+        <p class="sel__note">
+          Подобрано {{ configMatched() }} из {{ configBom().length }} позиций по текущему каталогу.
+          Количество и комплектация — ориентировочные (по укрупнённым нормам), точный проект и наличие подтверждает инженер.
+        </p>
+
+        <div class="cfg__actions">
+          <button class="btn btn--accent btn--lg" (click)="addConfig()">Добавить всё в заявку <span class="arrow">↗</span></button>
+          <button class="btn btn--lg" (click)="reset()">Начать заново</button>
         </div>
       </div>
     </ng-container>
 
-    <!-- ───────────── Калькулятор ───────────── -->
+    <!-- ═══════════ БЫСТРЫЙ КАЛЬКУЛЯТОР ═══════════ -->
     <ng-container *ngIf="tab() === 'calc'">
-      <div class="sel__empty" *ngIf="dia() === null">
-        Выберите диаметр трассы — рассчитаем количество труб, фитингов и уклон.
+      <div class="sel__params">
+        <div class="sel__param">
+          <span class="sel__param-lbl">Назначение</span>
+          <div class="sel__seg">
+            <button [class.is-active]="cUsage() === 'internal'" (click)="selectCUsage('internal')">Внутренняя</button>
+            <button [class.is-active]="cUsage() === 'external'" (click)="selectCUsage('external')">Наружная</button>
+          </div>
+        </div>
+        <div class="sel__param">
+          <span class="sel__param-lbl">Диаметр, мм</span>
+          <div class="sel__dias">
+            <button *ngFor="let d of calcDiameters()" [class.is-active]="cDia() === d" (click)="cDia.set(d)">Ø{{ d }}</button>
+            <span class="sel__hint" *ngIf="calcDiameters().length === 0">нет данных</span>
+          </div>
+        </div>
       </div>
 
-      <div class="sel__calc" *ngIf="dia() !== null">
+      <div class="sel__empty" *ngIf="cDia() === null">Выберите диаметр трассы — рассчитаем материал и уклон.</div>
+
+      <div class="sel__calc" *ngIf="cDia() !== null">
         <div class="sel__calc-form">
-          <label class="sel__field">
-            <span>Длина трассы, м</span>
-            <input type="number" min="0.5" step="0.5" [ngModel]="length()" (ngModelChange)="length.set(+$event || 0)" />
-          </label>
-          <label class="sel__field">
-            <span>Длина одной трубы, м</span>
-            <input type="number" min="0.5" step="0.5" [ngModel]="segLen()" (ngModelChange)="segLen.set(+$event || 0.5)" />
-          </label>
-          <label class="sel__field">
-            <span>Отводы / повороты, шт</span>
-            <input type="number" min="0" step="1" [ngModel]="bends()" (ngModelChange)="bends.set(+$event || 0)" />
-          </label>
-          <label class="sel__field">
-            <span>Тройники, шт</span>
-            <input type="number" min="0" step="1" [ngModel]="tees()" (ngModelChange)="tees.set(+$event || 0)" />
-          </label>
-          <label class="sel__field">
-            <span>Ревизии, шт</span>
-            <input type="number" min="0" step="1" [ngModel]="revisions()" (ngModelChange)="revisions.set(+$event || 0)" />
-          </label>
+          <label class="sel__field"><span>Длина трассы, м</span>
+            <input type="number" min="0.5" step="0.5" [ngModel]="length()" (ngModelChange)="length.set(+$event || 0)" /></label>
+          <label class="sel__field"><span>Длина одной трубы, м</span>
+            <input type="number" min="0.5" step="0.5" [ngModel]="segLen()" (ngModelChange)="segLen.set(+$event || 0.5)" /></label>
+          <label class="sel__field"><span>Отводы / повороты, шт</span>
+            <input type="number" min="0" step="1" [ngModel]="bends()" (ngModelChange)="bends.set(+$event || 0)" /></label>
+          <label class="sel__field"><span>Тройники, шт</span>
+            <input type="number" min="0" step="1" [ngModel]="tees()" (ngModelChange)="tees.set(+$event || 0)" /></label>
+          <label class="sel__field"><span>Ревизии, шт</span>
+            <input type="number" min="0" step="1" [ngModel]="revisions()" (ngModelChange)="revisions.set(+$event || 0)" /></label>
         </div>
 
-        <!-- Нормативный уклон -->
         <div class="sel__norm">
           <div class="sel__norm-item">
             <span class="sel__norm-val">{{ slopeStr() }}</span>
-            <span class="sel__norm-lbl">мин. уклон (СНиП), Ø{{ dia() }}</span>
+            <span class="sel__norm-lbl">мин. уклон (СНиП), Ø{{ cDia() }}</span>
           </div>
           <div class="sel__norm-item">
             <span class="sel__norm-val">{{ cmPerM() }} см/м</span>
@@ -136,12 +223,9 @@
           </div>
         </div>
 
-        <!-- Спецификация -->
         <div class="sel__bom">
           <table class="sel__bom-table">
-            <thead>
-              <tr><th>Позиция</th><th>Подобрано</th><th class="r">Кол-во</th><th class="r">Сумма</th></tr>
-            </thead>
+            <thead><tr><th>Позиция</th><th>Подобрано</th><th class="r">Кол-во</th><th class="r">Сумма</th></tr></thead>
             <tbody>
               <tr *ngFor="let l of calcLines()">
                 <td>{{ l.label }}</td>
@@ -154,13 +238,8 @@
               <tr><td colspan="3" class="r">Ориентировочно (розница):</td><td class="r mono sel__bom-total">{{ fmt(calcTotal()) }} ₽</td></tr>
             </tfoot>
           </table>
-          <p class="sel__note">
-            Расчёт ориентировочный: количество труб — из длины трассы и длины одной трубы.
-            Точные позиции, наличие и цены подтверждает менеджер.
-          </p>
-          <button class="btn btn--accent btn--lg sel__addall" (click)="addAll()">
-            Добавить всё в заявку <span class="arrow">↗</span>
-          </button>
+          <p class="sel__note">Расчёт ориентировочный. Точные позиции, наличие и цены подтверждает менеджер.</p>
+          <button class="btn btn--accent btn--lg sel__addall" (click)="addCalc()">Добавить всё в заявку <span class="arrow">↗</span></button>
         </div>
       </div>
     </ng-container>
