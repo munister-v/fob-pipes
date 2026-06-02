@@ -24,8 +24,14 @@ const ICONS: Record<string, string> = {
   imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!-- ── Initializing (Firebase session check) ───────────────────── -->
+    <div class="adm-init" *ngIf="auth.initializing()">
+      <div class="adm-init__spinner"></div>
+      <span class="adm-init__txt">Проверяем сессию…</span>
+    </div>
+
     <!-- ── Login ──────────────────────────────────────────────────── -->
-    <div class="adm-login" *ngIf="!auth.authed()">
+    <div class="adm-login" *ngIf="!auth.authed() && !auth.initializing()">
       <div class="adm-login__bg" aria-hidden="true">
         <div class="adm-login__glow"></div>
         <div class="adm-login__grid"></div>

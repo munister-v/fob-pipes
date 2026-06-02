@@ -10,7 +10,46 @@ export class AdminAuth {
   private readonly DEFAULT  = 'fob-admin';
   private readonly firebase = firebaseEnabled();
 
-  readonly authed = signal<boolean>(this.firebase ? this.readFirebase() : this.readLocal());
+  /**
+   * Авторизован ли пользователь.
+   * localStorage: восстанавливается синхронно при старте.
+   * Firebase: начинает с false, обновляется через onAuthStateChanged.
+   */
+  readonly authed = signal<boolean>(this.firebase ? false : this.readLocal());
+
+  /**
+   * true пока Firebase асинхронно проверяет сохранённую сессию.
+   * Используется чтобы не мигал экран логина при перезагрузке страницы.
+   * Для localStorage-режима всегда false (всё синхронно).
+   */
+  readonly initializing = signal<boolean>(this.firebase);
+
+  constructor() {
+    if (this.firebase) {
+      void this.restoreFirebaseSession();
+    }
+  }
+
+  /** Восстанавливает Firebase-сессию из IndexedDB при перезагрузке страницы. */
+  private async restoreFirebaseSession(): Promise<void> {
+    try {
+      const appMod  = await import('firebase/app');
+      const authMod = await import('firebase/auth');
+      const app  = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(FIREBASE_CONFIG);
+      const auth = authMod.getAuth(app);
+
+      // Firebase SDK сам хранит токен в IndexedDB/localStorage.
+      // onAuthStateChanged вызывается ОДИН РАЗ при старте с текущим состоянием
+      // (user !== null → сессия жива, null → не авторизован).
+      authMod.onAuthStateChanged(auth, (user) => {
+        this.authed.set(!!user);
+        this.initializing.set(false);   // скрываем спиннер
+      });
+    } catch (e) {
+      console.error('[firebase-auth] restore session failed', e);
+      this.initializing.set(false);
+    }
+  }
 
   /** Сохранённый email для автозаполнения формы входа */
   get savedEmail(): string {
@@ -19,16 +58,9 @@ export class AdminAuth {
 
   usesFirebase(): boolean { return this.firebase; }
 
-  // ── localStorage backend ────────────────────────────────────────
+  // ── localStorage backend ────────────────────────────────────────────
   private readLocal(): boolean {
     try { return localStorage.getItem(AUTH_KEY) === '1'; } catch { return false; }
-  }
-
-  // ── Firebase — проверяем сохранённую сессию SDK ─────────────────
-  private readFirebase(): boolean {
-    // Firebase SDK сам хранит сессию в IndexedDB/localStorage.
-    // Сигнал обновится через onAuthStateChanged в data-store.
-    return false;
   }
 
   private hash(s: string): string {
@@ -64,9 +96,8 @@ export class AdminAuth {
     try {
       const appMod  = await import('firebase/app');
       const authMod = await import('firebase/auth');
-      const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(FIREBASE_CONFIG);
+      const app  = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(FIREBASE_CONFIG);
       const auth = authMod.getAuth(app);
-      // Браузерная persistence по умолчанию — сессия живёт в IndexedDB
       await authMod.setPersistence(auth, authMod.browserLocalPersistence);
       await authMod.signInWithEmailAndPassword(auth, email.trim(), pw);
       this.saveEmail(email.trim());
