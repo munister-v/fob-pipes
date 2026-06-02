@@ -441,6 +441,102 @@ export class PdfService {
     doc.save(`Прайс-ФОБ-${dateStr.replace(/\./g, '-')}.pdf`);
   }
 
+  /** Спецификация подобранной системы канализации (из конфигуратора /podbor). */
+  async spec(
+    sysTitle: string,
+    bom:    { label: string; product: { title: string } | null; qty: number; sum: number; note?: string }[],
+    checks: { label: string; value: string; status: string }[],
+    content: SiteContent,
+  ): Promise<void> {
+    const jsPDF = await this.load();
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const GREEN = [40, 184, 77] as [number, number, number];
+    const DARK  = [13, 16, 15]  as [number, number, number];
+    const GRAY  = [120, 130, 125] as [number, number, number];
+    const W = 210; const PAD = 14;
+
+    // Шапка
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, W, 22, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Ф.О.Б — Спецификация: ${sysTitle}`, PAD, 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`${content.address}  ·  ${content.phone}  ·  ${content.email}`, PAD, 17);
+    doc.setFontSize(8);
+    doc.text(new Date().toLocaleDateString('ru-RU'), W - PAD, 15, { align: 'right' });
+
+    let y = 32;
+
+    // Нормативные проверки
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK);
+    doc.text('Нормативные показатели', PAD, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    for (const c of checks) {
+      doc.setTextColor(...GRAY);
+      doc.text(c.label + ':', PAD, y);
+      doc.setTextColor(...DARK);
+      doc.text(c.value, PAD + 70, y);
+      y += 6;
+    }
+
+    y += 4;
+    // BOM таблица
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK);
+    doc.text('Спецификация материалов', PAD, y);
+    y += 5;
+
+    const total = bom.reduce((s, l) => s + l.sum, 0);
+    const hasPrices = bom.some((l) => l.sum > 0);
+
+    (doc as any).autoTable({
+      startY: y,
+      margin: { left: PAD, right: PAD },
+      head: [['Позиция', 'Артикул / наименование', 'Кол-во', ...(hasPrices ? ['Сумма, ₽'] : [])]],
+      body: bom.map((l) => [
+        l.label + (l.note ? `\n${l.note}` : ''),
+        l.product?.title ?? 'подберёт менеджер',
+        String(l.qty),
+        ...(hasPrices ? [l.sum > 0 ? this.fmt(l.sum) : '—'] : []),
+      ]),
+      foot: hasPrices ? [[
+        { content: 'ИТОГО (ориентировочно, по розничным ценам):', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: this.fmt(total), styles: { fontStyle: 'bold' } },
+      ]] : [],
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+      footStyles: { fillColor: [235, 248, 235], textColor: DARK },
+      alternateRowStyles: { fillColor: [248, 251, 248] },
+      columnStyles: { 0: { cellWidth: 58 }, 2: { halign: 'center', cellWidth: 18 }, 3: { halign: 'right', cellWidth: 22 } },
+    });
+
+    // Подвал
+    const footY = 282;
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.4);
+    doc.line(PAD, footY, W - PAD, footY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text(
+      'Спецификация носит ориентировочный характер. Наличие, точные цены и комплектацию уточняйте у менеджера.',
+      W / 2, footY + 5, { align: 'center' }
+    );
+    doc.text(`${content.address}  ·  ${content.phone}  ·  ${content.email}  ·  ${content.hours}`, W / 2, footY + 10, { align: 'center' });
+
+    const date = new Date().toISOString().slice(0, 10);
+    doc.save(`ФОБ-спецификация-${sysTitle.replace(/\s+/g, '-')}-${date}.pdf`);
+  }
+
   private fmt(n: number): string {
     return n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }

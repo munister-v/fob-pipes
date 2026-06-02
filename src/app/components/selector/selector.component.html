@@ -4,26 +4,24 @@
       <div class="eyebrow"><span class="dot"></span><span class="num">10</span> В помощь заказчику</div>
       <h2 class="section-title">Подбор и расчёт<br />системы канализации</h2>
       <p class="sel__lead">
-        Соберите систему по нормативу — конфигуратор сам подберёт диаметр,
-        фасонные части и крепления, проверит уклон по СНиП и посчитает смету.
-        Либо рассчитайте трассу за пару полей. Всё добавляется прямо в заявку.
+        Соберите систему по нормативу — конфигуратор сам подберёт диаметр по расходу стоков,
+        проверит гидравлическую нагрузку, посчитает эквивалентные длины фитингов и выдаст
+        полную спецификацию с PDF-выгрузкой. Либо рассчитайте трассу за пару полей.
       </p>
     </div>
 
-    <!-- Tabs -->
     <div class="sel__tabs">
       <button [class.is-active]="tab() === 'config'" (click)="tab.set('config')">Конфигуратор системы</button>
       <button [class.is-active]="tab() === 'calc'" (click)="tab.set('calc')">Быстрый калькулятор</button>
     </div>
 
-    <!-- ═══════════ КОНФИГУРАТОР ═══════════ -->
+    <!-- ═══════════════ КОНФИГУРАТОР ════════════════ -->
     <ng-container *ngIf="tab() === 'config'">
-      <!-- Шаги -->
       <ol class="cfg__steps">
         <li [class.is-active]="step() === 1" [class.is-done]="step() > 1" (click)="reset()">
           <span class="cfg__step-n">1</span> Тип системы
         </li>
-        <li [class.is-active]="step() === 2" [class.is-done]="step() > 2" (click)="sysType() && step.set(2)">
+        <li [class.is-active]="step() === 2" [class.is-done]="step() > 2" (click)="sysType() ? step.set(2) : null">
           <span class="cfg__step-n">2</span> Параметры
         </li>
         <li [class.is-active]="step() === 3">
@@ -31,37 +29,41 @@
         </li>
       </ol>
 
-      <!-- ── Шаг 1: тип ── -->
+      <!-- Шаг 1 -->
       <div class="cfg__types" *ngIf="step() === 1">
         <button class="cfg__type" *ngFor="let s of systems" (click)="setSys(s.id)">
+          <span class="cfg__type-icon">{{ s.icon }}</span>
           <span class="cfg__type-title">{{ s.title }}</span>
           <span class="cfg__type-desc">{{ s.desc }}</span>
-          <span class="cfg__type-go">Выбрать →</span>
+          <span class="cfg__type-go">Настроить →</span>
         </button>
       </div>
 
-      <!-- ── Шаг 2: параметры ── -->
+      <!-- Шаг 2 -->
       <div class="cfg__params" *ngIf="step() === 2 && sysDef() as sys">
-        <button class="cfg__back" (click)="back()">← {{ sys.title }}</button>
+        <button class="cfg__back" (click)="back()">← Назад</button>
+        <h3 class="cfg__params-h">{{ sys.icon }} {{ sys.title }}</h3>
 
-        <!-- Материал -->
         <div class="cfg__row">
-          <span class="cfg__row-lbl">Материал</span>
+          <span class="cfg__row-lbl">Материал труб</span>
           <div class="sel__seg">
             <button [class.is-active]="material() === 'any'" (click)="material.set('any')">Любой</button>
-            <button [class.is-active]="material() === 'ПП'" (click)="material.set('ПП')">ПП</button>
+            <button [class.is-active]="material() === 'ПП'"  (click)="material.set('ПП')">ПП</button>
             <button [class.is-active]="material() === 'ПВХ'" (click)="material.set('ПВХ')">ПВХ</button>
           </div>
         </div>
 
         <!-- Внутренняя разводка -->
         <ng-container *ngIf="sys.id === 'internal'">
-          <p class="cfg__hint">Укажите сантехприборы — диаметр коллектора подберётся автоматически по СП 30.13330.</p>
+          <p class="cfg__hint">Укажите приборы — диаметр коллектора подберётся автоматически по СП 30.13330.</p>
           <div class="cfg__fixtures">
             <div class="cfg__fx" *ngFor="let f of fixtures" [class.is-on]="qtyOf(f.id) > 0">
               <div class="cfg__fx-info">
-                <span class="cfg__fx-name">{{ f.label }}</span>
-                <span class="cfg__fx-meta">Ø{{ f.dia }} · {{ f.du }} л/с</span>
+                <span class="cfg__fx-icon">{{ f.icon }}</span>
+                <div>
+                  <span class="cfg__fx-name">{{ f.label }}</span>
+                  <span class="cfg__fx-meta">Ø{{ f.dia }} · {{ f.du }} л/с</span>
+                </div>
               </div>
               <div class="cfg__stepper">
                 <button (click)="incFixture(f.id, -1)" [disabled]="qtyOf(f.id) === 0">−</button>
@@ -70,6 +72,14 @@
               </div>
             </div>
           </div>
+
+          <!-- Авто-диаметр -->
+          <div class="cfg__autodiam" *ngIf="totalFixtures() > 0">
+            <span class="cfg__autodiam-label">Автоподбор Ø коллектора:</span>
+            <span class="cfg__autodiam-val">Ø{{ recDia() }}</span>
+            <span class="cfg__autodiam-reason">— {{ recReason() }} · {{ flowStr() }} л/с</span>
+          </div>
+
           <label class="sel__field cfg__field">
             <span>Длина коллектора (до стояка), м</span>
             <input type="number" min="0" step="0.5" [ngModel]="collectorLen()" (ngModelChange)="collectorLen.set(+$event || 0)" />
@@ -78,44 +88,37 @@
 
         <!-- Стояк -->
         <ng-container *ngIf="sys.id === 'riser'">
+          <p class="cfg__hint">Стояк всегда Ø110 мм по нормативу. Укажите этажность.</p>
           <div class="cfg__grid">
-            <label class="sel__field">
-              <span>Этажей</span>
-              <input type="number" min="1" step="1" [ngModel]="floors()" (ngModelChange)="floors.set(+$event || 1)" />
-            </label>
-            <label class="sel__field">
-              <span>Высота этажа, м</span>
-              <input type="number" min="2" step="0.1" [ngModel]="floorH()" (ngModelChange)="floorH.set(+$event || 2.8)" />
-            </label>
+            <label class="sel__field"><span>Количество этажей</span>
+              <input type="number" min="1" step="1" [ngModel]="floors()" (ngModelChange)="floors.set(+$event || 1)" /></label>
+            <label class="sel__field"><span>Высота этажа, м</span>
+              <input type="number" min="2" step="0.1" [ngModel]="floorH()" (ngModelChange)="floorH.set(+$event || 2.8)" /></label>
           </div>
         </ng-container>
 
         <!-- Наружная / ливневая -->
         <ng-container *ngIf="sys.id === 'external' || sys.id === 'storm'">
           <div class="cfg__row">
-            <span class="cfg__row-lbl">Диаметр, мм</span>
+            <span class="cfg__row-lbl">Диаметр трубопровода</span>
             <div class="sel__dias">
               <button *ngFor="let d of extDiameters()" [class.is-active]="extDia() === d" (click)="extDia.set(d)">Ø{{ d }}</button>
             </div>
           </div>
           <div class="cfg__grid">
-            <label class="sel__field">
-              <span>Длина трассы, м</span>
-              <input type="number" min="1" step="1" [ngModel]="extLen()" (ngModelChange)="extLen.set(+$event || 0)" />
-            </label>
-            <label class="sel__field">
-              <span>Поворотов</span>
-              <input type="number" min="0" step="1" [ngModel]="extTurns()" (ngModelChange)="extTurns.set(+$event || 0)" />
-            </label>
-            <label class="sel__field">
-              <span>Тройников / врезок</span>
-              <input type="number" min="0" step="1" [ngModel]="extTees()" (ngModelChange)="extTees.set(+$event || 0)" />
-            </label>
-            <label class="sel__field">
-              <span>Глубина заложения, м</span>
-              <input type="number" min="0" step="0.1" [ngModel]="extDepth()" (ngModelChange)="extDepth.set(+$event || 0)" />
-            </label>
+            <label class="sel__field"><span>Длина трассы, м</span>
+              <input type="number" min="1" step="1" [ngModel]="extLen()" (ngModelChange)="extLen.set(+$event || 0)" /></label>
+            <label class="sel__field"><span>Поворотов 87°</span>
+              <input type="number" min="0" step="1" [ngModel]="extTurns()" (ngModelChange)="extTurns.set(+$event || 0)" /></label>
+            <label class="sel__field"><span>Тройников / врезок</span>
+              <input type="number" min="0" step="1" [ngModel]="extTees()" (ngModelChange)="extTees.set(+$event || 0)" /></label>
+            <label class="sel__field"><span>Глубина заложения, м</span>
+              <input type="number" min="0" step="0.1" [ngModel]="extDepth()" (ngModelChange)="extDepth.set(+$event || 0)" /></label>
           </div>
+          <label class="cfg__check-box">
+            <input type="checkbox" [ngModel]="trafficLoad()" (ngModelChange)="trafficLoad.set($event)" />
+            Наземная нагрузка (проезд автомобилей) — влияет на класс жёсткости SN
+          </label>
         </ng-container>
 
         <button class="btn btn--accent btn--lg cfg__next" [disabled]="!canProceed()" (click)="next()">
@@ -123,11 +126,20 @@
         </button>
       </div>
 
-      <!-- ── Шаг 3: спецификация ── -->
+      <!-- Шаг 3 -->
       <div class="cfg__result" *ngIf="step() === 3 && sysDef() as sys">
         <button class="cfg__back" (click)="back()">← Параметры</button>
-
-        <h3 class="cfg__result-h">{{ sys.title }} · спецификация</h3>
+        <div class="cfg__result-header">
+          <h3 class="cfg__result-h">{{ sys.icon }} {{ sys.title }} · спецификация</h3>
+          <div class="cfg__result-actions">
+            <button class="btn btn--accent btn--lg" (click)="addConfig()">Всё в заявку <span class="arrow">↗</span></button>
+            <button class="cfg__pdf-btn" (click)="downloadSpec()" [disabled]="generatingPdf()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              {{ generatingPdf() ? 'Генерация…' : 'Скачать PDF' }}
+            </button>
+            <button class="cfg__reset-btn" (click)="reset()">Заново</button>
+          </div>
+        </div>
 
         <!-- Нормативные проверки -->
         <div class="cfg__checks">
@@ -137,43 +149,85 @@
           </div>
         </div>
 
-        <!-- BOM -->
-        <table class="sel__bom-table cfg__bom">
-          <thead>
-            <tr><th>Позиция</th><th>Подобрано</th><th class="r">Кол-во</th><th class="r">Сумма</th></tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let l of configBom()" [class.is-missing]="!l.product">
-              <td>
-                {{ l.label }}
-                <span class="cfg__bom-note" *ngIf="l.note">{{ l.note }}</span>
-              </td>
-              <td class="sel__bom-pick">
-                {{ l.product ? l.product.title : '— подберёт менеджер —' }}
-                <span class="cfg__stock" *ngIf="l.product && (l.product.stock ?? 0) > 0">склад: {{ l.product.stock }}</span>
-              </td>
-              <td class="r mono">{{ l.qty }}</td>
-              <td class="r mono">{{ l.sum > 0 ? fmt(l.sum) + ' ₽' : '—' }}</td>
-            </tr>
-          </tbody>
-          <tfoot *ngIf="configHasPrices()">
-            <tr><td colspan="3" class="r">Ориентировочно (розница):</td><td class="r mono sel__bom-total">{{ fmt(configTotal()) }} ₽</td></tr>
-          </tfoot>
-        </table>
+        <!-- Гидравлический индикатор (только для внутренней) -->
+        <div class="cfg__gauge" *ngIf="sys.id === 'internal'">
+          <div class="cfg__gauge-head">
+            <span>Гидравлическая нагрузка Ø{{ recDia() }}</span>
+            <span [ngClass]="'cfg__gauge-pct--' + loadStatus()">{{ loadPct() }}% от пропускной способности</span>
+          </div>
+          <div class="cfg__gauge-bar">
+            <div class="cfg__gauge-fill" [ngClass]="'cfg__gauge-fill--' + loadStatus()" [style.width.%]="loadPct()"></div>
+          </div>
+          <div class="cfg__gauge-legend">
+            <span>0</span>
+            <span class="cfg__gauge-limit">60% — рабочий режим</span>
+            <span>{{ fmtQ(qDesign()) }} л/с</span>
+          </div>
+        </div>
+
+        <!-- BOM таблица -->
+        <div class="cfg__bom-wrap">
+          <table class="sel__bom-table cfg__bom">
+            <thead>
+              <tr><th>Позиция</th><th>Подобрано</th><th class="r">Кол-во</th><th class="r">Сумма</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of configBom()" [class.is-missing]="!l.product">
+                <td>
+                  {{ l.label }}
+                  <span class="cfg__bom-note" *ngIf="l.note">{{ l.note }}</span>
+                </td>
+                <td class="sel__bom-pick">
+                  <ng-container *ngIf="l.product; else noMatch">
+                    {{ l.product.title }}
+                    <span class="cfg__stock" *ngIf="(l.product.stock ?? 0) > 0">
+                      склад: {{ l.product.stock }} шт
+                    </span>
+                  </ng-container>
+                  <ng-template #noMatch><span class="cfg__no-match">подберёт менеджер</span></ng-template>
+                </td>
+                <td class="r mono">{{ l.qty }}</td>
+                <td class="r mono">{{ l.sum > 0 ? fmt(l.sum) + ' ₽' : '—' }}</td>
+                <td>
+                  <button class="cfg__add-line" *ngIf="l.product"
+                    [class.is-in]="quote.has(l.product.sku)"
+                    (click)="addLine(l)">
+                    {{ quote.has(l.product!.sku) ? '✓' : '+' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot *ngIf="configHasPrices()">
+              <tr>
+                <td colspan="3" class="r">Ориентировочно (розница):</td>
+                <td class="r mono sel__bom-total">{{ fmt(configTotal()) }} ₽</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
 
         <p class="sel__note">
           Подобрано {{ configMatched() }} из {{ configBom().length }} позиций по текущему каталогу.
-          Количество и комплектация — ориентировочные (по укрупнённым нормам), точный проект и наличие подтверждает инженер.
+          Количество труб рассчитано с учётом эквивалентных длин фитингов.
+          Спецификация ориентировочная — точный проект и наличие подтверждает инженер.
         </p>
 
-        <div class="cfg__actions">
-          <button class="btn btn--accent btn--lg" (click)="addConfig()">Добавить всё в заявку <span class="arrow">↗</span></button>
-          <button class="btn btn--lg" (click)="reset()">Начать заново</button>
+        <!-- Монтажные рекомендации -->
+        <div class="cfg__tips">
+          <button class="cfg__tips-toggle" (click)="tipsOpen.set(!tipsOpen())">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Монтажные рекомендации
+            <span class="cfg__tips-arrow" [class.is-open]="tipsOpen()">▾</span>
+          </button>
+          <ul class="cfg__tips-list" *ngIf="tipsOpen()">
+            <li *ngFor="let tip of currentTips()">{{ tip }}</li>
+          </ul>
         </div>
       </div>
     </ng-container>
 
-    <!-- ═══════════ БЫСТРЫЙ КАЛЬКУЛЯТОР ═══════════ -->
+    <!-- ═══════════════ БЫСТРЫЙ КАЛЬКУЛЯТОР ════════════════ -->
     <ng-container *ngIf="tab() === 'calc'">
       <div class="sel__params">
         <div class="sel__param">
@@ -211,7 +265,7 @@
         <div class="sel__norm">
           <div class="sel__norm-item">
             <span class="sel__norm-val">{{ slopeStr() }}</span>
-            <span class="sel__norm-lbl">мин. уклон (СНиП), Ø{{ cDia() }}</span>
+            <span class="sel__norm-lbl">мин. уклон (СНиП)</span>
           </div>
           <div class="sel__norm-item">
             <span class="sel__norm-val">{{ cmPerM() }} см/м</span>
@@ -220,6 +274,10 @@
           <div class="sel__norm-item">
             <span class="sel__norm-val">{{ drop() }} см</span>
             <span class="sel__norm-lbl">перепад на {{ length() }} м</span>
+          </div>
+          <div class="sel__norm-item">
+            <span class="sel__norm-val">{{ fmtQ(qCap()) }} л/с</span>
+            <span class="sel__norm-lbl">пропускная способность</span>
           </div>
         </div>
 
@@ -238,7 +296,7 @@
               <tr><td colspan="3" class="r">Ориентировочно (розница):</td><td class="r mono sel__bom-total">{{ fmt(calcTotal()) }} ₽</td></tr>
             </tfoot>
           </table>
-          <p class="sel__note">Расчёт ориентировочный. Точные позиции, наличие и цены подтверждает менеджер.</p>
+          <p class="sel__note">Расчёт ориентировочный. Наличие и цены подтверждает менеджер.</p>
           <button class="btn btn--accent btn--lg sel__addall" (click)="addCalc()">Добавить всё в заявку <span class="arrow">↗</span></button>
         </div>
       </div>
