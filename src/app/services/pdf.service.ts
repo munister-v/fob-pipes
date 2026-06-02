@@ -10,39 +10,17 @@ import { CategoryDef, Product } from '../models/product.model';
 @Injectable({ providedIn: 'root' })
 export class PdfService {
   // ── Roboto TTF для кириллицы (кеш) ────────────────────────────────────
-  private fontCacheR = '';   // Roboto Regular base64
-  private fontCacheB = '';   // Roboto Bold   base64
+  // Шрифт встроен в JS-бандл (pdf-fonts.ts, ~800 KB base64).
+  // Загружается ленивым dynamic import — только при первой генерации PDF.
+  // Никаких сетевых запросов, работает оффлайн и без CDN.
+  private fontCacheR = '';
+  private fontCacheB = '';
 
-  /**
-   * Загружает TTF из собственных assets (src/assets/fonts/).
-   * URL строится относительно document.baseURI чтобы работать при любом base-href.
-   * Кеш — на время сессии, повторные PDF генерируются мгновенно.
-   */
-  private async fetchFont(filename: string): Promise<string> {
-    // document.baseURI = 'https://munister.com.ua/fob/' при base-href=/fob/
-    const url = new URL(`assets/fonts/${filename}`, document.baseURI).href;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`Font ${filename} load failed: ${r.status} (${url})`);
-    const buf = await r.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let b = '';
-    // ArrayBuffer → base64 чанками (избегаем stack overflow на большом файле)
-    const CHUNK = 8192;
-    for (let i = 0; i < bytes.length; i += CHUNK) {
-      b += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-    }
-    return btoa(b);
-  }
-
-  /** Загружает Roboto Regular + Bold параллельно (только если ещё не загружены). */
   private async loadFonts(): Promise<void> {
     if (this.fontCacheR) return;
-    const [r, b] = await Promise.all([
-      this.fetchFont('Roboto-Regular.ttf'),
-      this.fetchFont('Roboto-Bold.ttf'),
-    ]);
-    this.fontCacheR = r;
-    this.fontCacheB = b;
+    const fonts = await import('./pdf-fonts');
+    this.fontCacheR = fonts.ROBOTO_R;
+    this.fontCacheB = fonts.ROBOTO_B;
   }
 
   /** Создаёт jsPDF и регистрирует в нём Roboto. */
