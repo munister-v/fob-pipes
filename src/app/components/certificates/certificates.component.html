@@ -2,8 +2,8 @@
   <div class="shell">
     <div class="head" appReveal>
       <div>
-        <div class="eyebrow"><span class="dot"></span><span class="num">08</span> Сертификаты</div>
-        <h2 class="section-title">Качество<br />и допуски</h2>
+        <div class="eyebrow"><span class="dot"></span><span class="num">08</span> Качество и награды</div>
+        <h2 class="section-title">Стандарты<br />и выставки</h2>
       </div>
       <p class="head__note">
         Полные копии документов и паспорта на партию предоставляем по запросу
@@ -11,6 +11,7 @@
       </p>
     </div>
 
+    <!-- Сертификаты -->
     <div class="grid">
       <div class="cert" *ngFor="let c of certs; let i = index" appReveal [revealDelay]="i * 70">
         <div class="cert__top">
@@ -23,6 +24,20 @@
         <h3 class="cert__title">{{ c.title }}</h3>
         <p class="cert__note">{{ c.note }}</p>
       </div>
+    </div>
+
+    <!-- Дипломы Aqua-Therm -->
+    <div class="awards-head" appReveal>
+      <div class="eyebrow"><span class="dot"></span> Дипломы участника выставки Aqua-Therm International, Киев</div>
+    </div>
+    <div class="awards">
+      <figure class="award" *ngFor="let a of awards; let i = index" appReveal [revealDelay]="i * 80">
+        <img [src]="a.src" [alt]="a.title" loading="lazy" />
+        <figcaption class="award__cap">
+          <span class="award__year">{{ a.year }}</span>
+          <span>{{ a.title }}</span>
+        </figcaption>
+      </figure>
     </div>
   </div>
 </section>

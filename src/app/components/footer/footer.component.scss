@@ -1,1 +1,269 @@
-:host{display:block}.ft{background:var(--c-deep);color:#fff;padding:clamp(56px,7vw,96px) 0 36px;border-top:1px solid var(--c-line)}.ft__call{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;padding-bottom:clamp(40px,5vw,64px);border-bottom:1px solid rgba(255,255,255,.14)}.ft__call   h2{font-size:clamp(26px,3.6vw,50px);text-transform:uppercase;letter-spacing:-.03em;line-height:.92}.ft__call   .accent{color:var(--c-accent)}.ft__cols{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.2fr;gap:40px;padding:clamp(40px,5vw,64px) 0;border-bottom:1px solid rgba(255,255,255,.14)}.col{display:flex;flex-direction:column;gap:12px;align-items:flex-start}.col__h{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--c-accent);margin-bottom:6px}.col__p{font-size:14px;line-height:1.6;color:#fff9;margin:0;max-width:34ch}.col   button, .col   a, .col   span:not(.col__h){background:none;border:0;padding:0;text-align:left;font-size:14px;color:#ffffffb8;transition:color .3s var(--ease)}.col   button:hover, .col   a:hover{color:#fff}.ft__seo{padding:30px 0;border-bottom:1px solid rgba(255,255,255,.14)}.ft__seo   p{font-size:12.5px;line-height:1.75;color:#ffffff6b;margin:0;max-width:110ch}.ft__seo   b{color:#ffffffb3}.ft__bottom{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:28px;font-size:12px;color:#ffffff73;flex-wrap:wrap}.ft__note{color:#ffffff4d}.ft__top{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:9px 16px;font-size:12px;font-weight:600;letter-spacing:.06em;transition:all .3s var(--ease)}.ft__top:hover{background:var(--c-accent);border-color:var(--c-accent)}@media (max-width: 900px){.ft__call{flex-direction:column;align-items:flex-start;gap:20px}.ft__call h2{font-size:clamp(24px,7vw,36px)}.ft__cols{grid-template-columns:1fr 1fr;gap:28px}}@media (max-width: 600px){.ft__cols{grid-template-columns:1fr;gap:24px}.ft__seo{display:none}.ft__bottom{flex-direction:column;align-items:flex-start;gap:14px;padding-top:20px}.ft__bottom > span:first-child{font-size:11.5px}.ft__top{align-self:flex-start}.ft__call .btn{width:100%;justify-content:center}}
+:host { display: block }
+
+// ── CTA-полоса ────────────────────────────────────────────────────
+.ft__cta {
+  background: var(--c-accent);
+  padding: clamp(36px,5vw,64px) 0;
+}
+.ft__cta-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.ft__cta-eye {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.7);
+  margin-bottom: 10px;
+}
+.ft__cta-text h2 {
+  font-size: clamp(22px,3vw,42px);
+  font-weight: 900;
+  letter-spacing: -.03em;
+  line-height: .96;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+  em { font-style: normal; color: var(--c-deep); }
+}
+.ft__cta-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.btn--ghost {
+  background: transparent;
+  border: 2px solid rgba(255,255,255,.6);
+  color: #fff;
+  font-size: 15px;
+  padding: 14px 26px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .25s, border-color .25s;
+  &:hover { background: rgba(255,255,255,.12); border-color: #fff; }
+}
+.btn--lg { padding: 16px 32px; font-size: 15px; }
+
+// ── Основной блок ─────────────────────────────────────────────────
+.ft { background: var(--c-deep); color: #fff; }
+
+.ft__body {
+  padding: clamp(48px,6vw,80px) 0 clamp(40px,5vw,64px);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.ft__grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr 1.4fr;
+  gap: 40px 32px;
+  align-items: start;
+}
+
+// ── Колонки ───────────────────────────────────────────────────────
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.col--wide { gap: 18px; }
+
+.col__h {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 4px;
+}
+
+.col__p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255,255,255,.55);
+  margin: 0;
+  max-width: 32ch;
+}
+
+.col a, .col button {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  font-size: 13.5px;
+  color: rgba(255,255,255,.6);
+  text-decoration: none;
+  transition: color .22s;
+  cursor: pointer;
+  line-height: 1.5;
+  &:hover { color: #fff; }
+}
+
+// ── Логотип ───────────────────────────────────────────────────────
+.ft__logo {
+  height: 44px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  opacity: .9;
+}
+
+// ── Теги ──────────────────────────────────────────────────────────
+.ft__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  span {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: .05em;
+    padding: 5px 10px;
+    border: 1px solid rgba(255,255,255,.15);
+    color: rgba(255,255,255,.45);
+    border-radius: 3px;
+  }
+}
+
+// ── Контактный блок ───────────────────────────────────────────────
+.ft__contact-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+.ft__contact-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.3);
+}
+.ft__contact-val {
+  font-size: 13.5px;
+  color: rgba(255,255,255,.7);
+  text-decoration: none;
+  transition: color .2s;
+  &:hover { color: #fff; }
+  &--accent { color: var(--c-accent); font-weight: 600; font-size: 15px; }
+  &--muted  { color: rgba(255,255,255,.5); font-size: 12.5px; }
+}
+
+// ── Кнопки связи ──────────────────────────────────────────────────
+.ft__btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.ft__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-decoration: none;
+  transition: background .2s, transform .2s;
+  &:hover { transform: translateY(-2px); }
+  &--call {
+    background: rgba(40,184,77,.18);
+    border: 1px solid rgba(40,184,77,.4);
+    color: #4cd57a;
+    &:hover { background: rgba(40,184,77,.35); }
+  }
+  &--viber {
+    background: rgba(125,86,197,.18);
+    border: 1px solid rgba(125,86,197,.4);
+    color: #b39ddb;
+    &:hover { background: rgba(125,86,197,.35); }
+  }
+}
+
+// ── SEO-блок ──────────────────────────────────────────────────────
+.ft__seo {
+  padding: 24px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  p {
+    font-size: 12px;
+    line-height: 1.8;
+    color: rgba(255,255,255,.28);
+    margin: 0;
+    max-width: 120ch;
+    b { color: rgba(255,255,255,.45); }
+  }
+}
+
+// ── Нижняя полоса ─────────────────────────────────────────────────
+.ft__bottom {
+  padding: 22px 0;
+}
+.ft__bottom-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ft__copy {
+  font-size: 12px;
+  color: rgba(255,255,255,.35);
+}
+.ft__made {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.2);
+}
+.ft__top {
+  background: none;
+  border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.55);
+  padding: 8px 16px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .25s;
+  &:hover {
+    background: var(--c-accent);
+    border-color: var(--c-accent);
+    color: #fff;
+    transform: translateY(-2px);
+  }
+}
+
+// ── Адаптив ───────────────────────────────────────────────────────
+@media (max-width: 1100px) {
+  .ft__grid { grid-template-columns: 1.4fr 1fr 1fr; }
+  .col--wide { grid-column: 1 / -1; flex-direction: row; align-items: flex-start; gap: 40px; }
+  .ft__logo { height: 36px; }
+}
+
+@media (max-width: 860px) {
+  .ft__cta-inner { flex-direction: column; align-items: flex-start; gap: 24px; }
+  .ft__grid { grid-template-columns: 1fr 1fr; }
+  .col--wide { flex-direction: column; gap: 16px; }
+}
+
+@media (max-width: 560px) {
+  .ft__grid { grid-template-columns: 1fr; gap: 32px; }
+  .ft__bottom-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .ft__made { display: none; }
+  .ft__top { align-self: flex-start; }
+  .ft__cta-actions { flex-direction: column; width: 100%; }
+  .btn--ghost, .btn--accent { width: 100%; justify-content: center; }
+}
