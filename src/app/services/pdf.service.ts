@@ -477,49 +477,49 @@ export class PdfService {
     const F = this.F;
     const dateStr = new Date(q.createdAt).toLocaleDateString('ru-RU');
 
-    // Шапка-полоса
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, W, 18, 'F');
+    // Шапка
+    doc.setFillColor(...GREEN); doc.rect(0, 0, W, 18, 'F');
     doc.setFont(F, 'bold'); doc.setFontSize(12); doc.setTextColor(255, 255, 255);
     doc.text('ТОВАРНАЯ НАКЛАДНАЯ  ТОРГ-12', PAD, 12);
     doc.setFont(F, 'normal'); doc.setFontSize(8);
-    doc.text(`№ ${q.id}  от ${dateStr}`, W - PAD, 12, { align: 'right' });
+    doc.text('№ ' + q.id + '  от ' + dateStr, W - PAD, 12, { align: 'right' });
 
+    // Реквизиты — используем точно ту же схему что и в invoice (работает)
     let y = 26;
-    const kv = (label: string, val: string, w1 = 38) => {
+    const kv = (label: string, val: string) => {
       doc.setFont(F, 'bold'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
       doc.text(label, PAD, y);
       doc.setFont(F, 'normal'); doc.setTextColor(...DARK);
-      const lines = doc.splitTextToSize(val, W - PAD * 2 - w1) as string[];
-      doc.text(lines, PAD + w1, y);
-      y += lines.length * 5.5;
+      doc.text(String(val || '—'), PAD + 40, y);   // NO splitTextToSize
+      y += 6;
     };
 
     kv('Грузоотправитель:', content.companyLegal || 'ООО «Ф.О.Б»');
-    kv('ИНН/КПП:', [content.inn, content.kpp].filter(Boolean).join(' / ') || '—');
-    kv('Адрес:', content.address);
+    const innKpp = [content.inn, content.kpp].filter(Boolean).join(' / ');
+    kv('ИНН / КПП:', innKpp || '—');
+    kv('Адрес:', content.address || '—');
 
     y += 2;
-    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2); doc.line(PAD, y, W - PAD, y); y += 4;
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2);
+    doc.line(PAD, y, W - PAD, y); y += 4;
 
     kv('Грузополучатель:', q.name || '—');
     kv('Телефон:', q.phone || '—');
     if (q.city) kv('Адрес доставки:', q.city);
-    kv('Основание:', `Заявка № ${q.id} от ${dateStr}`);
+    kv('Основание:', 'Заявка № ' + q.id + ' от ' + dateStr);
+    y += 2;
 
-    y += 3;
-
-    // Таблица позиций
-    const hasPrice = q.lines.some((l) => (l.product.priceRetail ?? 0) > 0);
+    // Таблица позиций (только 6 колонок — надёжно умещается)
     let total = 0; let totalVat = 0;
-    const body = q.lines.map((l, i) => {
+    const hasPrice = q.lines.some((l) => (l.product.priceRetail ?? 0) > 0);
+    const body = q.lines.map((l, idx) => {
       const price = l.product.priceRetail ?? 0;
       const sum   = price * l.qty;
       const vat   = sum * 0.2;
       total    += sum;
       totalVat += vat;
       return [
-        String(i + 1),
+        String(idx + 1),
         l.product.title,
         l.product.unit ?? 'шт',
         String(l.qty),
@@ -532,48 +532,54 @@ export class PdfService {
     });
 
     (doc as any).autoTable({
-      head: [['№', 'Наименование товара', 'Ед.', 'Кол-во', 'Цена', 'Сумма без НДС', 'НДС', 'Сумма НДС', 'Итого с НДС']],
+      head: [['№', 'Наименование', 'Ед.', 'Кол.', 'Цена', 'Сумма', 'НДС', 'Сумма НДС', 'Итого']],
       body, startY: y,
       margin: { left: PAD, right: PAD },
       styles: { font: F, fontSize: 8, cellPadding: 2.5, textColor: DARK },
       headStyles: { fillColor: GREEN, textColor: [255, 255, 255], font: F, fontStyle: 'bold', fontSize: 7.5 },
       alternateRowStyles: { fillColor: [245, 248, 246] },
       columnStyles: {
-        0: { cellWidth: 8 }, 2: { cellWidth: 12 }, 3: { cellWidth: 14, halign: 'center' },
-        4: { cellWidth: 20, halign: 'right' }, 5: { cellWidth: 26, halign: 'right' },
-        6: { cellWidth: 14, halign: 'center' }, 7: { cellWidth: 22, halign: 'right' }, 8: { cellWidth: 26, halign: 'right' },
+        0: { cellWidth: 8 },
+        2: { cellWidth: 12 }, 3: { cellWidth: 12, halign: 'center' },
+        4: { cellWidth: 22, halign: 'right' }, 5: { cellWidth: 24, halign: 'right' },
+        6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 22, halign: 'right' },
+        8: { cellWidth: 24, halign: 'right' },
       },
     });
 
     const fy: number = (doc as any).lastAutoTable.finalY + 5;
 
     if (hasPrice) {
-      doc.setFont(F, 'normal'); doc.setFontSize(9); doc.setTextColor(...DARK);
-      const totals = [
-        ['Итого без НДС:', this.fmt(total)],
-        ['НДС (20%):', this.fmt(totalVat)],
-        ['Итого с НДС:', this.fmt(total + totalVat)],
+      const tRows = [
+        ['Итого без НДС:', this.fmt(total) + ' руб.'],
+        ['НДС 20%:', this.fmt(totalVat) + ' руб.'],
+        ['Итого с НДС:', this.fmt(total + totalVat) + ' руб.'],
       ];
-      totals.forEach(([l, v], i) => {
-        const isLast = i === totals.length - 1;
-        if (isLast) { doc.setFont(F, 'bold'); doc.setFillColor(...GREEN); doc.rect(PAD, fy + i * 7 - 3, W - PAD * 2, 9, 'F'); doc.setTextColor(255, 255, 255); }
-        else { doc.setFont(F, 'normal'); doc.setTextColor(...GRAY); }
-        doc.text(l, W - PAD - 50, fy + i * 7 + 2, { align: 'right' });
-        doc.text(v + ' руб.', W - PAD, fy + i * 7 + 2, { align: 'right' });
+      tRows.forEach(([lbl, val], i) => {
+        const isLast = i === 2;
+        if (isLast) {
+          doc.setFillColor(...GREEN);
+          doc.rect(PAD, fy + i * 7 - 3, W - PAD * 2, 9, 'F');
+          doc.setFont(F, 'bold'); doc.setTextColor(255, 255, 255);
+        } else {
+          doc.setFont(F, 'normal'); doc.setTextColor(...GRAY);
+        }
+        doc.setFontSize(9);
+        doc.text(lbl, W - PAD - 50, fy + i * 7 + 2, { align: 'right' });
+        doc.text(val, W - PAD, fy + i * 7 + 2, { align: 'right' });
       });
     }
 
-    const sigY = Math.min(fy + (hasPrice ? 30 : 8), 265);
+    const sigY = Math.min(fy + (hasPrice ? 32 : 10), 265);
     doc.setFont(F, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-    const sigLine = (label: string, x: number, sy: number) => {
-      doc.text(label, x, sy);
-      doc.setDrawColor(...GRAY); doc.setLineWidth(0.3); doc.line(x + 30, sy, x + 80, sy);
-    };
-    sigLine('Грузоотправитель:', PAD, sigY);
-    sigLine('Грузополучатель:', PAD, sigY + 12);
+    doc.text('Грузоотправитель:', PAD, sigY);
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.3);
+    doc.line(PAD + 38, sigY, PAD + 98, sigY);
+    doc.text('Грузополучатель:', PAD, sigY + 12);
+    doc.line(PAD + 36, sigY + 12, PAD + 96, sigY + 12);
 
     this.footer(doc, content, F);
-    this.savePdf(doc, `ТОРГ12-${q.id}-${dateStr.replace(/\./g, '-')}.pdf`);
+    this.savePdf(doc, 'ТОРГ12-' + q.id + '-' + dateStr.replace(/\./g, '-') + '.pdf');
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -594,91 +600,110 @@ export class PdfService {
     doc.setFont(F, 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
     doc.text('УНИВЕРСАЛЬНЫЙ ПЕРЕДАТОЧНЫЙ ДОКУМЕНТ (УПД)', PAD, 9);
     doc.setFont(F, 'normal'); doc.setFontSize(8);
-    doc.text('Счёт-фактура + Передаточный документ (Функция СЧФ+ДОП)', PAD, 15);
-    doc.text(`№ ${q.id}  от ${dateStr}`, W - PAD, 15, { align: 'right' });
+    doc.text('Счёт-фактура + Передаточный документ', PAD, 15);
+    doc.text('№ ' + q.id + '  от ' + dateStr, W - PAD, 15, { align: 'right' });
 
+    // Реквизиты (та же схема что invoice — через block, без splitTextToSize)
     let y = 30;
-    const row2 = (l1: string, v1: string, l2: string, v2: string) => {
+    const block = (label: string, val: string) => {
       doc.setFont(F, 'bold'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-      doc.text(l1, PAD, y); doc.text(l2, PAD + 95, y);
+      doc.text(label, PAD, y);
       doc.setFont(F, 'normal'); doc.setTextColor(...DARK);
-      doc.text(v1, PAD + 30, y); doc.text(v2, PAD + 125, y);
+      doc.text(String(val || '—'), PAD + 34, y);
+      y += 6;
+    };
+    const block2 = (l1: string, v1: string, l2: string, v2: string) => {
+      doc.setFont(F, 'bold'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+      doc.text(l1, PAD, y);       doc.text(l2, PAD + 98, y);
+      doc.setFont(F, 'normal'); doc.setTextColor(...DARK);
+      doc.text(String(v1 || '—'), PAD + 34, y);
+      doc.text(String(v2 || '—'), PAD + 132, y);
       y += 6;
     };
 
-    row2('Продавец:', content.companyLegal || 'ООО «Ф.О.Б»', 'Покупатель:', q.name || '—');
-    row2('ИНН/КПП:', [content.inn, content.kpp].filter(Boolean).join('/') || '—', 'Телефон:', q.phone || '—');
-    row2('Адрес:', content.address, 'Адрес:', q.city || '—');
-    if (content.bankAccount) row2('Р/С:', content.bankAccount, 'Основание:', `Заявка ${q.id}`);
-    if (content.bankName) row2('Банк:', content.bankName, 'БИК:', content.bankBic || '—');
+    block2('Продавец:', content.companyLegal || 'ООО «Ф.О.Б»', 'Покупатель:', q.name || '—');
+    const innKpp = [content.inn, content.kpp].filter(Boolean).join('/');
+    block2('ИНН/КПП:', innKpp || '—', 'Телефон:', q.phone || '—');
+    block2('Адрес:', content.address || '—', 'Адрес:', q.city || '—');
+    if (content.bankAccount) block('Р/С:', content.bankAccount);
+    if (content.bankName)    block('Банк:', content.bankName + (content.bankBic ? '  БИК: ' + content.bankBic : ''));
+    block('Основание:', 'Заявка № ' + q.id + ' от ' + dateStr);
 
     y += 2;
-    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2); doc.line(PAD, y, W - PAD, y); y += 4;
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2);
+    doc.line(PAD, y, W - PAD, y); y += 4;
 
-    const hasPrice = q.lines.some((l) => (l.product.priceRetail ?? 0) > 0);
+    // Таблица (7 колонок — надёжно умещается)
     let total = 0, vat20 = 0;
-    const body = q.lines.map((l, i) => {
-      const price = l.product.priceRetail ?? 0;
-      const sum   = price * l.qty;
+    const hasPrice = q.lines.some((l) => (l.product.priceRetail ?? 0) > 0);
+    const body = q.lines.map((l, idx) => {
+      const price  = l.product.priceRetail ?? 0;
+      const sum    = price * l.qty;
       const vatAmt = sum * 0.2;
-      total  += sum;
-      vat20  += vatAmt;
+      total += sum;
+      vat20 += vatAmt;
       return [
-        String(i + 1),
+        String(idx + 1),
         l.product.title,
-        l.product.sku,
-        String(l.qty),
         l.product.unit ?? 'шт',
-        hasPrice && price > 0 ? this.fmt(price) : '—',
-        hasPrice && sum > 0   ? this.fmt(sum)   : '—',
+        String(l.qty),
+        hasPrice && price > 0   ? this.fmt(price)         : '—',
+        hasPrice && sum > 0     ? this.fmt(sum)            : '—',
         '20%',
-        hasPrice && vatAmt > 0 ? this.fmt(vatAmt) : '—',
-        hasPrice && sum > 0    ? this.fmt(sum + vatAmt) : '—',
+        hasPrice && vatAmt > 0  ? this.fmt(vatAmt)         : '—',
+        hasPrice && sum > 0     ? this.fmt(sum + vatAmt)   : '—',
       ];
     });
 
     (doc as any).autoTable({
-      head: [['№', 'Наименование', 'Артикул', 'Кол-во', 'Ед.', 'Цена', 'Стоимость без НДС', 'Ставка НДС', 'Сумма НДС', 'Стоимость с НДС']],
+      head: [['№', 'Наименование товара', 'Ед.', 'Кол.', 'Цена', 'Сумма без НДС', 'НДС%', 'Сумма НДС', 'Итого']],
       body, startY: y,
       margin: { left: PAD, right: PAD },
-      styles: { font: F, fontSize: 7.5, cellPadding: 2.3, textColor: DARK },
-      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], font: F, fontStyle: 'bold', fontSize: 7 },
+      styles: { font: F, fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], font: F, fontStyle: 'bold', fontSize: 7.5 },
       alternateRowStyles: { fillColor: [245, 248, 246] },
       columnStyles: {
-        0: { cellWidth: 7 }, 2: { cellWidth: 18, font: 'courier', fontSize: 7 }, 3: { cellWidth: 12, halign: 'center' },
-        4: { cellWidth: 10 }, 5: { cellWidth: 18, halign: 'right' }, 6: { cellWidth: 22, halign: 'right' },
-        7: { cellWidth: 16, halign: 'center' }, 8: { cellWidth: 20, halign: 'right' }, 9: { cellWidth: 22, halign: 'right' },
+        0: { cellWidth: 8 },
+        2: { cellWidth: 12 }, 3: { cellWidth: 12, halign: 'center' },
+        4: { cellWidth: 22, halign: 'right' }, 5: { cellWidth: 24, halign: 'right' },
+        6: { cellWidth: 12, halign: 'center' }, 7: { cellWidth: 22, halign: 'right' },
+        8: { cellWidth: 24, halign: 'right' },
       },
     });
 
-    const fy: number = (doc as any).lastAutoTable.finalY + 4;
+    const fy: number = (doc as any).lastAutoTable.finalY + 5;
+
     if (hasPrice) {
-      const lines = [
-        [`Итого без НДС: ${this.fmt(total)} руб.`],
-        [`В т.ч. НДС (20%): ${this.fmt(vat20)} руб.`],
-        [`ИТОГО с НДС: ${this.fmt(total + vat20)} руб.`],
-      ];
-      doc.setFont(F, 'normal'); doc.setFontSize(9); doc.setTextColor(...DARK);
-      lines.forEach(([t], i) => {
-        if (i === 2) { doc.setFont(F, 'bold'); doc.setFillColor(...GREEN); doc.rect(PAD, fy + i * 7 - 3, W - PAD * 2, 9, 'F'); doc.setTextColor(255, 255, 255); }
-        doc.text(t, W - PAD, fy + i * 7 + 2, { align: 'right' });
-      });
+      // Итоги — прямые строки, без массива lines
+      const r1 = 'Итого без НДС: ' + this.fmt(total) + ' руб.';
+      const r2 = 'В т.ч. НДС (20%): ' + this.fmt(vat20) + ' руб.';
+      const r3 = 'ИТОГО с НДС: ' + this.fmt(total + vat20) + ' руб.';
+      doc.setFont(F, 'normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+      doc.text(r1, W - PAD, fy + 2,  { align: 'right' });
+      doc.text(r2, W - PAD, fy + 9,  { align: 'right' });
+      doc.setFillColor(...GREEN);
+      doc.rect(PAD, fy + 13, W - PAD * 2, 9, 'F');
+      doc.setFont(F, 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+      doc.text(r3, W - PAD, fy + 19, { align: 'right' });
     }
 
     // Подписи
-    const sigY = Math.min(fy + (hasPrice ? 28 : 8), 260);
+    const sigY = Math.min(fy + (hasPrice ? 32 : 10), 260);
     doc.setFont(F, 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-    const sigLine = (label: string, x: number, sy: number, w = 60) => {
-      doc.text(label, x, sy);
-      doc.setDrawColor(...GRAY); doc.setLineWidth(0.3); doc.line(x + 28, sy, x + 28 + w, sy);
-    };
-    sigLine('Руководитель:', PAD, sigY);
-    sigLine('Главный бухгалтер:', PAD + 95, sigY);
-    sigLine('Товар принял:', PAD, sigY + 12);
-    sigLine('Дата:', PAD + 95, sigY + 12, 40);
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.3);
+
+    doc.text('Руководитель:', PAD, sigY);
+    doc.line(PAD + 30, sigY, PAD + 88, sigY);
+    doc.text('Главный бухгалтер:', PAD + 98, sigY);
+    doc.line(PAD + 130, sigY, PAD + 188, sigY);
+
+    doc.text('Товар принял:', PAD, sigY + 12);
+    doc.line(PAD + 28, sigY + 12, PAD + 86, sigY + 12);
+    doc.text('Дата:', PAD + 98, sigY + 12);
+    doc.line(PAD + 110, sigY + 12, PAD + 150, sigY + 12);
 
     this.footer(doc, content, F);
-    this.savePdf(doc, `УПД-${q.id}-${dateStr.replace(/\./g, '-')}.pdf`);
+    this.savePdf(doc, 'УПД-' + q.id + '-' + dateStr.replace(/\./g, '-') + '.pdf');
   }
 
   // ─────────────────────────────────────────────────────────────────────
