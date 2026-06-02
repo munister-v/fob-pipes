@@ -330,20 +330,38 @@ export class QuotesAdminComponent {
   // ── PDF ────────────────────────────────────────────────────────────
 
   async downloadKP(q: StoredQuote): Promise<void> {
-    await this.pdf.quoteKP(q, this.store.content());
-    this.toast.ok('КП скачан');
+    this.toast.ok('Подготовка КП…');
+    try {
+      await this.pdf.quoteKP(q, this.store.content());
+      this.toast.ok('КП скачан');
+    } catch (e) {
+      console.error('[pdf] quoteKP', e);
+      this.toast.err('Ошибка генерации PDF: ' + String(e));
+    }
   }
 
   async downloadInvoice(q: StoredQuote): Promise<void> {
-    const num = q.id.replace('Q-', '');
-    await this.pdf.invoice(q, this.store.content(), `ФОБ-${num}`);
-    this.toast.ok('Счёт скачан');
+    this.toast.ok('Подготовка счёта…');
+    try {
+      const num = q.id.replace('Q-', '');
+      await this.pdf.invoice(q, this.store.content(), `ФОБ-${num}`);
+      this.toast.ok('Счёт скачан');
+    } catch (e) {
+      console.error('[pdf] invoice', e);
+      this.toast.err('Ошибка генерации PDF: ' + String(e));
+    }
   }
 
   async exportPdfReport(): Promise<void> {
-    const period = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-    await this.pdf.reportQuotes(this.filtered(), period, this.store.content());
-    this.toast.ok('PDF-отчёт скачан');
+    this.toast.ok('Подготовка отчёта…');
+    try {
+      const period = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+      await this.pdf.reportQuotes(this.filtered(), period, this.store.content());
+      this.toast.ok('PDF-отчёт скачан');
+    } catch (e) {
+      console.error('[pdf] report', e);
+      this.toast.err('Ошибка генерации PDF: ' + String(e));
+    }
   }
 
   // ── Excel ──────────────────────────────────────────────────────────

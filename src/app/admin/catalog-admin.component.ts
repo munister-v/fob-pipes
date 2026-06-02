@@ -469,12 +469,14 @@ export class CatalogAdminComponent {
   }
 
   async exportPricePdf(): Promise<void> {
-    await this.pdf.priceList(
-      this.store.products(),
-      this.store.categories(),
-      this.store.content(),
-    );
-    this.toast.ok('Прайс-лист PDF скачан');
+    this.toast.ok('Подготовка прайс-листа…');
+    try {
+      await this.pdf.priceList(this.store.products(), this.store.categories(), this.store.content());
+      this.toast.ok('Прайс-лист PDF скачан');
+    } catch (e) {
+      console.error('[pdf] priceList', e);
+      this.toast.err('Ошибка PDF: ' + String(e));
+    }
   }
 
   async importFile(ev: Event): Promise<void> {
